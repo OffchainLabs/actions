@@ -44,6 +44,13 @@ runs:
         cd arbitrum-sdk
         cp ./.env-sample ./.env
 
+    - name: Install arbitrum-sdk dependencies
+      shell: bash
+      if: ${{ inputs.token-bridge == 'true' }}
+      run: |
+        cd arbitrum-sdk
+        yarn install --frozen-lockfile
+
     - name: Build arbitrum-sdk
       shell: bash
       if: ${{ inputs.token-bridge == 'true' }}
