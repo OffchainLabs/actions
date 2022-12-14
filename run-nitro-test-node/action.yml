@@ -37,3 +37,25 @@ runs:
     - name: Wait for Nitro startup
       shell: bash
       run: ${{ github.action_path }}/waitForNitro.sh
+
+    - name: Copy .env inside arbitrum-sdk
+      shell: bash
+      if: ${{ inputs.token-bridge }}
+      run: |
+        cd arbitrum-sdk
+        cp ./.env-sample ./.env
+
+    - name: Build arbitrum-sdk
+      shell: bash
+      if: ${{ inputs.token-bridge }}
+      run: |
+        cd arbitrum-sdk
+        yarn gen:abi
+        yarn build
+
+    - name: Deploy token bridge and generate network file
+      shell: bash
+      if: ${{ inputs.token-bridge }}
+      run: |
+        cd arbitrum-sdk
+        yarn gen:network
