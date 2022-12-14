@@ -1,0 +1,22 @@
+name: OffchainLabs/actions/run-nitro-test-node
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  run-with-defaults:
+    name: 'Run with defaults'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./run-nitro-test-node
+
+  run-with-token-bridge:
+    name: 'Run with token bridge deployment'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./run-nitro-test-node
+        with:
+          token-bridge: true
