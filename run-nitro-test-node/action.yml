@@ -2,8 +2,9 @@ name: Run Nitro Test Node
 description: 'Checks out the Nitro repository and runs the local test node setup'
 inputs:
   token-bridge:
+    type: boolean
     required: false
-    default: 'false'
+    default: false
     description: 'Whether the token bridge should be deployed on the test node'
 runs:
   using: 'composite'
@@ -12,16 +13,17 @@ runs:
       uses: actions/checkout@v3
       with:
         repository: OffchainLabs/nitro
-        submodules: 'recursive'
         path: 'nitro'
         ref: 'v2.0.9'
+        submodules: 'recursive'
 
     - name: Checkout OffchainLabs/arbitrum-sdk
-      if: inputs.token-bridge == 'true'
+      if: ${{ inputs.token-bridge }}
       uses: actions/checkout@v3
       with:
         repository: OffchainLabs/arbitrum-sdk
         path: 'arbitrum-sdk'
+        ref: 'v3.0.0'
 
     - name: Start background Nitro test-node.bash
       shell: bash
