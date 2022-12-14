@@ -9,7 +9,7 @@ runs:
         repository: OffchainLabs/nitro
         submodules: 'recursive'
         path: 'nitro'
-        ref: 'test-node-prod'
+        ref: 'v2.0.9'
 
     - name: Start background nitro test-node.bash
       shell: bash
