@@ -17,24 +17,13 @@ runs:
         ref: 'v2.0.9'
 
     - name: Start background nitro test-node.bash
-      if: ${{ inputs.no-token-bridge != 'true' }}
       shell: bash
       # Currently, you can't run parallel steps, so we add the "&" to run this step in the background
       #
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro
-        ./test-node.bash --init --no-blockscout &
-
-    - name: Start background nitro test-node.bash
-      if: ${{ inputs.no-token-bridge == 'true' }}
-      shell: bash
-      # Currently, you can't run parallel steps, so we add the "&" to run this step in the background
-      #
-      # See https://stackoverflow.com/a/72203688 for more info
-      run: |
-        cd nitro
-        ./test-node.bash --init --no-blockscout --no-tokenbridge &
+    ./test-node.bash --init --no-blockscout ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' }} &
 
     - name: Wait for nitro startup
       shell: bash
