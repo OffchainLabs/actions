@@ -1,5 +1,10 @@
 name: Run Nitro Test Node
 description: 'Checks out the Nitro repository and runs the local test node setup'
+inputs:
+  no-token-bridge:
+    required: false
+    default: 'false'
+    description: 'Whether to skip deploying the token bridge on the test node'
 runs:
   using: 'composite'
   steps:
@@ -18,7 +23,7 @@ runs:
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro
-        ./test-node.bash --init --no-blockscout &
+        ./test-node.bash --init --no-blockscout ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} &
 
     - name: Wait for nitro startup
       shell: bash
