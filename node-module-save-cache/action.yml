@@ -1,13 +1,10 @@
-name: Save node_modules to cache
-description: "Checkout repository and save 'node_modules' from cache"
-outputs:
-  cache-key:
-    description: "Key for cache"
-    value: ${{ steps.cache.outputs.primary-key }}
+name: actions/node-module-save-cache
+description: "Install node_modules and save it to cache"
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
 
     - name: Check cache for "node_modules"
       id: cache
@@ -17,6 +14,7 @@ runs:
         key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
 
     - name: Install dependencies
+      shell: bash
       if: steps.cache.outputs.cache-hit != 'true'
       run: yarn install --frozen-lockfile
 
