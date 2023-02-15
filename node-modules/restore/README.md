@@ -9,7 +9,7 @@ In workflows:
 ```yml
 jobs:
   install:
-    name: Install node modules
+    name: Restore node modules
     needs: [install] # Name of the jobs installing node_modules through node-module-save-cache action
     runs-on: ubuntu-latest
     steps:
@@ -18,6 +18,4 @@ jobs:
 
       - name: Restore cache
         uses: OffchainLabs/actions/node-module-restore-cache@main
-        with:
-          cache-key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
 ```
