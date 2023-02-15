@@ -4,6 +4,7 @@ inputs:
   cache-key:
     description: "Key to retrieve node_modules from cache"
     required: true
+    default: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
 runs:
   using: "composite"
   steps:
