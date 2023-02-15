@@ -1,5 +1,9 @@
 name: actions/node-module-restore-cache
 description: "Restore node_modules from cache"
+inputs:
+  cache-key:
+    description: "Key to retrieve node_modules from cache"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -10,4 +14,4 @@ runs:
       uses: martijnhols/actions-cache/restore@v3
       with:
         path: "**/node_modules"
-        key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+        key: ${{ inputs.cache-key }}
