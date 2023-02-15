@@ -6,14 +6,14 @@ on:
 
 jobs:
   run-with-defaults:
-    name: "Run with defaults"
+    name: 'Run with defaults'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./run-nitro-test-node
 
   run-with-token-bridge:
-    name: "Run without token bridge deployment"
+    name: 'Run without token bridge deployment'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
