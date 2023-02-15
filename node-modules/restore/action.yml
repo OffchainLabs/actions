@@ -3,7 +3,7 @@ description: "Restore node_modules from cache"
 inputs:
   cache-key:
     description: "Key to retrieve node_modules from cache"
-    required: true
+    required: false
     default: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
 runs:
   using: "composite"
