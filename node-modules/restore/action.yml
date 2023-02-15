@@ -7,9 +7,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
     - name: Restore "node_modules" from cache
       uses: martijnhols/actions-cache/restore@v3
       with:

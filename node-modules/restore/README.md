@@ -13,6 +13,11 @@ jobs:
     needs: [install] # Name of the jobs installing node_modules through node-module-save-cache action
     runs-on: ubuntu-latest
     steps:
-      - name: restore cache
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Restore cache
         uses: OffchainLabs/actions/node-module-restore-cache@main
+        with:
+          cache-key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
 ```
