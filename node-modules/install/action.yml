@@ -22,7 +22,7 @@ runs:
     - name: Install dependencies
       shell: bash
       if: steps.cache.outputs.cache-hit != 'true'
-      run: ${{ inputs.install-command || inputs.install-command.default }}
+      run: ${{ inputs.install-command }}
 
     - name: Save "node_modules" to cache
       if: steps.cache.outputs.cache-hit != 'true'
