@@ -17,7 +17,7 @@ runs:
       uses: martijnhols/actions-cache/check@v3
       with:
         path: "**/node_modules"
-        key: ${{ inputs.cache-key }} || ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+        key: ${{ inputs.cache-key }}
 
     - name: Install dependencies
       shell: bash
