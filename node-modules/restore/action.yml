@@ -1,4 +1,4 @@
-name: actions/node-module-restore-cache
+name: actions/node-modules/restore
 description: "Restore node_modules from cache"
 inputs:
   cache-key:

@@ -8,11 +8,11 @@ In workflows:
 
 ```yml
 jobs:
-  install:
+  workflow-using-node-modules:
     name: Restore node modules
-    needs: [install] # Name of the jobs installing node_modules through node-module-save-cache action
+    needs: [workflow-caching-node-modules] # Name of the jobs installing node_modules through node-module-save-cache action
     runs-on: ubuntu-latest
     steps:
       - name: Restore cache
-        uses: OffchainLabs/actions/node-module-restore-cache@main
+        uses: OffchainLabs/actions/node-modules/restore@main
 ```

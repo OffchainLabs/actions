@@ -8,10 +8,10 @@ In workflows:
 
 ```yml
 jobs:
-  install:
+  workflow-caching-node-modules:
     name: Install node modules
     runs-on: ubuntu-latest
     steps:
       - name: Install node_modules
-        uses: OffchainLabs/actions/node-module-save-cache@main
+        uses: OffchainLabs/actions/node-modules/install@main
 ```

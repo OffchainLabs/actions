@@ -1,4 +1,4 @@
-name: actions/node-module-save-cache
+name: actions/node-modules/install
 description: "Install node_modules and save it to cache"
 inputs:
   install-command:
