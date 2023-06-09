@@ -11,18 +11,18 @@ runs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        repository: OffchainLabs/nitro
+        repository: OffchainLabs/nitro-testnode
         submodules: 'recursive'
-        path: 'nitro'
-        ref: 'v2.0.11'
+        path: 'nitro-testnode'
+        ref: 'master'
 
-    - name: Start background nitro test-node.bash
+    - name: Start background nitro-testnode test-node.bash
       shell: bash
       # Currently, you can't run parallel steps, so we add the "&" to run this step in the background
       #
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
-        cd nitro
+        cd nitro-testnode
         ./test-node.bash --init --no-blockscout ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} &
 
     - name: Wait for nitro startup
