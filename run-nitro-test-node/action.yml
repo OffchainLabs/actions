@@ -14,7 +14,7 @@ runs:
         repository: OffchainLabs/nitro-testnode
         submodules: 'recursive'
         path: 'nitro-testnode'
-        ref: 'master'
+        ref: 'release'
 
     - name: Start background nitro-testnode test-node.bash
       shell: bash
