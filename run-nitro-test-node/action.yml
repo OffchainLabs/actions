@@ -11,19 +11,19 @@ runs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        repository: OffchainLabs/nitro-testnode
+        repository: OffchainLabs/nitro
         submodules: true
-        path: 'nitro-testnode'
-        ref: 'release'
+        path: 'nitro'
+        ref: 'feature-erc20-rollup'
 
-    - name: Start background nitro-testnode test-node.bash
+    - name: Start background nitro test-node.bash
       shell: bash
       # Currently, you can't run parallel steps, so we add the "&" to run this step in the background
       #
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
-        cd nitro-testnode
-        ./test-node.bash --init ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} &
+        cd nitro
+        ./test-node.bash --init --dev --erc20-rollup ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} &
 
     - name: Wait for nitro startup
       shell: bash
