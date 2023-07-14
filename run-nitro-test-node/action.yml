@@ -29,7 +29,7 @@ runs:
       shell: bash
       run: ${{ github.action_path }}/waitForNitro.sh
 
-    - name: Wait for token bridge deployment
-      if: ${{ inputs.no-token-bridge != 'true' }}
-      shell: bash
-      run: ${{ github.action_path }}/waitForTokenBridge.sh
+    # - name: Wait for token bridge deployment
+    #   if: ${{ inputs.no-token-bridge != 'true' }}
+    #   shell: bash
+    #   run: ${{ github.action_path }}/waitForTokenBridge.sh
