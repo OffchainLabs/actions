@@ -1,20 +1,20 @@
 name: Run Nitro Test Node
-description: 'Checks out the Nitro repository and runs the local test node setup'
+description: "Checks out the Nitro repository and runs the local test node setup"
 inputs:
   no-token-bridge:
     required: false
-    default: 'false'
-    description: 'Whether to skip deploying the token bridge on the test node'
+    default: "false"
+    description: "Whether to skip deploying the token bridge on the test node"
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Checkout
       uses: actions/checkout@v3
       with:
         repository: OffchainLabs/nitro-testnode
         submodules: true
-        path: 'nitro-testnode'
-        ref: 'release'
+        path: "nitro-testnode"
+        ref: "fund-dev-key"
 
     - name: Start background nitro-testnode test-node.bash
       shell: bash
