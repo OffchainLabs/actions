@@ -5,6 +5,10 @@ inputs:
     required: false
     default: 'false'
     description: 'Whether to skip deploying the token bridge on the test node'
+  nitro-testnode-ref:
+    required: false
+    default: 'release'
+    description: 'The nitro-testnode branch to use'
 runs:
   using: 'composite'
   steps:
@@ -14,7 +18,7 @@ runs:
         repository: OffchainLabs/nitro-testnode
         submodules: true
         path: 'nitro-testnode'
-        ref: 'release'
+        ref: ${{ inputs.nitro-testnode-ref }}
 
     - name: Start background nitro-testnode test-node.bash
       shell: bash
