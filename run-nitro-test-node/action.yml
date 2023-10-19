@@ -24,10 +24,6 @@ runs:
         path: 'nitro-testnode'
         ref: ${{ inputs.nitro-testnode-ref }}
 
-    - name: Echo commands
-      shell: bash
-      run: echo ${{ inputs.args }}
-
     - name: Start background nitro-testnode test-node.bash
       shell: bash
       # Currently, you can't run parallel steps, so we add the "&" to run this step in the background
