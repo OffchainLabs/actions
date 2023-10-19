@@ -28,5 +28,5 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./run-nitro-test-node
         with:
-          args: --pos --no-token-bridge
+          args: --detach
 
