@@ -5,6 +5,10 @@ inputs:
     required: false
     default: 'false'
     description: 'Whether to skip deploying the token bridge on the test node'
+  args:
+    required: false
+    default: ''
+    description: 'Additional args that can be supplied to the test node script'
   nitro-testnode-ref:
     required: false
     default: 'release'
@@ -27,7 +31,7 @@ runs:
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
-        ./test-node.bash --init ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} &
+        ./test-node.bash --init ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} ${{ inputs.args }} &
 
     - name: Wait for nitro startup
       shell: bash
