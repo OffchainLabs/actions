@@ -20,3 +20,13 @@ jobs:
       - uses: ./run-nitro-test-node
         with:
           no-token-bridge: true
+
+  run-with-args:
+    name: 'Run with args'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./run-nitro-test-node
+        with:
+          args: --detach
+
