@@ -24,8 +24,9 @@ runs:
         path: 'nitro-testnode'
         ref: ${{ inputs.nitro-testnode-ref }}
 
-    # - name: Echo commands
-    #   run: echo ${{ inputs.args }}
+    - name: Echo commands
+      shell: bash
+      run: echo ${{ inputs.args }}
 
     - name: Start background nitro-testnode test-node.bash
       shell: bash
