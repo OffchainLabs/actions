@@ -31,7 +31,8 @@ runs:
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
-        ./test-node.bash --init ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} ${{ inputs.args }} &
+        ./test-node.bash --init ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} ${{ inputs.args }} > output.txt &
+        tail -f output.txt &
 
     - name: Wait for nitro startup
       shell: bash
