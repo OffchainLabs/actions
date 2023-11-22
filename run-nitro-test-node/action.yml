@@ -39,7 +39,7 @@ runs:
 
     - name: Wait for nitro startup
       shell: bash
-      run: ${{ github.action_path }}/waitForNitro.sh
+      run: ${{ github.action_path }}/waitForNitro.sh 8547
 
     - name: Wait for L3 startup
       if: ${{ inputs.l3-node == 'true' }}
