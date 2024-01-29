@@ -17,6 +17,10 @@ inputs:
     required: false
     default: 'release'
     description: 'The nitro-testnode branch to use'
+  l3-node:
+    required: false
+    default: 'false'
+    description: 'Whether to start an L3 node in addition to the L2 node'
 runs:
   using: 'composite'
   steps:
@@ -42,7 +46,12 @@ runs:
 
     - name: Wait for nitro startup
       shell: bash
-      run: ${{ github.action_path }}/waitForNitro.sh
+      run: ${{ github.action_path }}/waitForNitro.sh 8547
+
+    - name: Wait for L3 startup
+      if: ${{ inputs.l3-node == 'true' }}
+      shell: bash
+      run: ${{ github.action_path }}/waitForNitro.sh 3347
 
     - name: Wait for token bridge deployment
       if: ${{ inputs.no-token-bridge != 'true' }}
