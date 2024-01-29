@@ -5,6 +5,10 @@ inputs:
     required: false
     default: 'false'
     description: 'Whether to skip deploying the token bridge on the test node'
+  no-l3-token-bridge:
+    required: false
+    default: 'false'
+    description: 'Whether to skip deploying the L3 token bridge on the test node'
   args:
     required: false
     default: ''
@@ -31,7 +35,10 @@ runs:
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
-        ./test-node.bash --init ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} ${{ inputs.args }} &
+        ./test-node.bash --init ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
+          ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
+          ${{ inputs.no-l3-token-bridge == 'true' && '' || '--l3-token-bridge' }} \
+          ${{ inputs.args }} &
 
     - name: Wait for nitro startup
       shell: bash
