@@ -35,7 +35,7 @@ jobs:
           args: --detach
 
   run-with-simple:
-    name: 'Run without token bridge deployment'
+    name: 'Run in simple mode'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
