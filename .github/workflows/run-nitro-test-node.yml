@@ -10,15 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./run-nitro-test-node
+      - uses: ./run-nitro-test-node@look-for-networks
+        with:
+          nitro-testnode-ref: master
 
   run-with-token-bridge:
     name: 'Run without token bridge deployment'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./run-nitro-test-node
+      - uses: ./run-nitro-test-node@look-for-networks
         with:
+          nitro-testnode-ref: master
           no-token-bridge: true
 
   run-with-args:
@@ -26,7 +29,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./run-nitro-test-node
+      - uses: ./run-nitro-test-node@look-for-networks
         with:
+          nitro-testnode-ref: master
           args: --detach
+
+  run-with-simple:
+    name: 'Run without token bridge deployment'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./run-nitro-test-node@look-for-networks
+        with:
+          nitro-testnode-ref: master
+          no-simple: false
 
