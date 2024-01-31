@@ -41,7 +41,7 @@ runs:
         cd nitro-testnode
         ./test-node.bash --init ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
-          ${{ inputs.no-l3-token-bridge == 'false' && inputs.l3-node == 'true' && '--l3-token-bridge' || '' }} \
+          ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
           ${{ inputs.args }} &
 
     - name: Wait for nitro startup
@@ -56,4 +56,9 @@ runs:
     - name: Wait for token bridge deployment
       if: ${{ inputs.no-token-bridge != 'true' }}
       shell: bash
-      run: ${{ github.action_path }}/waitForTokenBridge.sh
+      run: ${{ github.action_path }}/waitForTokenBridge.sh l1l2_network.json
+
+    - name: Wait for token bridge deployment
+      if: ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' }}
+      shell: bash
+      run: ${{ github.action_path }}/waitForTokenBridge.sh l2l3_network.json
