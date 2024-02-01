@@ -9,13 +9,17 @@ inputs:
     required: false
     default: 'false'
     description: 'Whether to skip deploying the L3 token bridge on the test node'
+  no-simple:
+    required: false
+    default: 'true'
+    description: 'Whether to start the test node in simple mode'
   args:
     required: false
     default: ''
     description: 'Additional args that can be supplied to the test node script'
   nitro-testnode-ref:
     required: false
-    default: 'old-release-v2.1.1'
+    default: 'release'
     description: 'The nitro-testnode branch to use'
   l3-node:
     required: false
@@ -39,7 +43,8 @@ runs:
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
-        ./test-node.bash --init ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
+        ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
+          ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
           ${{ inputs.args }} &
@@ -56,7 +61,7 @@ runs:
     - name: Wait for token bridge deployment
       if: ${{ inputs.no-token-bridge != 'true' }}
       shell: bash
-      run: ${{ github.action_path }}/waitForTokenBridge.sh l1l2_network.json
+      run: ${{ github.action_path }}/waitForTokenBridge.sh localNetwork.json
 
     - name: Wait for token bridge deployment
       if: ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' }}
