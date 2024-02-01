@@ -5,10 +5,6 @@ inputs:
     required: false
     default: 'false'
     description: 'Whether to skip deploying the token bridge on the test node'
-  no-simple:
-    required: false
-    default: 'true'
-    description: 'Whether to start the test node in simple mode'
   args:
     required: false
     default: ''
@@ -39,7 +35,7 @@ runs:
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
-        ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} ${{ inputs.l3-node == 'true' && '--l3node' || '' }} ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} ${{ inputs.args }} &
+        ./test-node.bash --init ${{ inputs.l3-node == 'true' && '--l3node' || '' }} ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '' }} ${{ inputs.args }} &
 
     - name: Wait for nitro startup
       shell: bash
