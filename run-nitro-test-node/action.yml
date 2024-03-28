@@ -29,6 +29,10 @@ inputs:
     required: false
     default: 'main'
     description: 'The nitro-contracts branch to use'
+  token-bridge-branch:
+    required: false
+    default: 'main'
+    description: 'The token-bridge-contracts branch to use'
 runs:
   using: 'composite'
   steps:
@@ -47,7 +51,8 @@ runs:
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
-        NITRO_CONTRACTS_BRANCH=${{ inputs.nitro-contracts-branch }} ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
+        NITRO_CONTRACTS_BRANCH=${{ inputs.nitro-contracts-branch }} TOKEN_BRIDGE_BRANCH=${{ inputs.token-bridge-branch }} \
+          ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
           ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
