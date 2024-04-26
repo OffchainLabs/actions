@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./run-nitro-test-node
-        with:
-          nitro-testnode-ref: 'default-versions'
 
   run-with-token-bridge:
     name: 'Run without token bridge deployment'
@@ -22,7 +20,6 @@ jobs:
       - uses: ./run-nitro-test-node
         with:
           no-token-bridge: true
-          nitro-testnode-ref: 'default-versions'
 
   run-with-args:
     name: 'Run with args'
@@ -32,7 +29,6 @@ jobs:
       - uses: ./run-nitro-test-node
         with:
           args: --detach
-          nitro-testnode-ref: 'default-versions'
 
   run-with-simple:
     name: 'Run in simple mode'
@@ -42,5 +38,3 @@ jobs:
       - uses: ./run-nitro-test-node
         with:
           no-simple: false
-          nitro-testnode-ref: 'default-versions'
-
