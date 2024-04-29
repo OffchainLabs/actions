@@ -38,4 +38,3 @@ jobs:
       - uses: ./run-nitro-test-node
         with:
           no-simple: false
-

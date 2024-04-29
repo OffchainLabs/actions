@@ -27,11 +27,9 @@ inputs:
     description: 'Whether to start an L3 node in addition to the L2 node'
   nitro-contracts-branch:
     required: false
-    default: 'main'
     description: 'The nitro-contracts branch to use'
   token-bridge-branch:
     required: false
-    default: 'main'
     description: 'The token-bridge-contracts branch to use'
 runs:
   using: 'composite'
@@ -51,8 +49,15 @@ runs:
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
-        NITRO_CONTRACTS_BRANCH=${{ inputs.nitro-contracts-branch }} TOKEN_BRIDGE_BRANCH=${{ inputs.token-bridge-branch }} \
-          ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
+
+        if [ -n "${{ inputs.nitro-contracts-branch }}" ]; then
+          export NITRO_CONTRACTS_BRANCH="${{ inputs.nitro-contracts-branch }}"
+        fi
+        if [ -n "${{ inputs.token-bridge-branch }}" ]; then
+          export TOKEN_BRIDGE_BRANCH="${{ inputs.token-bridge-branch }}"
+        fi
+
+        ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
           ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
