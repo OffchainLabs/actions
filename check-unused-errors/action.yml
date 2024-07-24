@@ -14,4 +14,4 @@ runs:
   steps:
     - name: Run unused errors checker
       shell: bash
-      run: ./find_unused_errors.sh ${{ inputs.directory }} ${{ inputs.exceptions_file }}
+      run: ${{ github.action_path }}/find_unused_errors.sh ${{ inputs.directory }} ${{ inputs.exceptions_file }}
