@@ -14,7 +14,7 @@ runs:
   steps:
     - name: Check cache for "node_modules"
       id: cache
-      uses: martijnhols/actions-cache/check@v3
+      uses: actions/cache/restore@v4
       with:
         path: "**/node_modules"
         key: ${{ inputs.cache-key }}
@@ -26,7 +26,7 @@ runs:
 
     - name: Save "node_modules" to cache
       if: steps.cache.outputs.cache-hit != 'true'
-      uses: martijnhols/actions-cache/save@v3
+      uses: actions/cache/save@v4
       with:
         path: "**/node_modules"
-        key: ${{ steps.cache.outputs.primary-key }}
+        key: ${{ inputs.cache-key }}
