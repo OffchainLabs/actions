@@ -1,0 +1,17 @@
+name: 'Check for unused Solidity errors'
+description: 'Action check for any unused Solidity errors in a project'
+inputs:
+  directory:
+    description: 'Directory containing the Solidity files'
+    required: true
+    default: './contracts'
+  exceptions_file:
+    description: 'Path to the exceptions file - a list of errors to skip'
+    required: true
+    default: './test/unused-errors/exceptions.txt'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run unused errors checker
+      shell: bash
+      run: ${{ github.action_path }}/find_unused_errors.sh ${{ inputs.directory }} ${{ inputs.exceptions_file }}
