@@ -43,21 +43,21 @@ runs:
 
         ./test-node.bash --init ${{ inputs.args }} &
 
-    - name: Wait for nitro startup
+    - name: Wait for L2 startup
       shell: bash
       run: ${{ github.action_path }}/waitForNitro.sh 8547
 
     - name: Wait for L3 startup
-      if: ${{ inputs.l3-node == 'true' }}
+      if: ${{ contains(inputs.args, '--l3node') }}
       shell: bash
       run: ${{ github.action_path }}/waitForNitro.sh 3347
 
-    - name: Wait for token bridge deployment
-      if: ${{ inputs.no-token-bridge != 'true' }}
+    - name: Wait for L2 token bridge deployment
+      if: ${{ contains(inputs.args, '--tokenbridge') }}
       shell: bash
       run: ${{ github.action_path }}/waitForTokenBridge.sh localNetwork.json
 
-    - name: Wait for token bridge deployment
-      if: ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' }}
+    - name: Wait for L3 token bridge deployment
+      if: ${{ contains(inputs.args, '--l3-token-bridge') }}
       shell: bash
       run: ${{ github.action_path }}/waitForTokenBridge.sh l2l3_network.json
