@@ -6,35 +6,44 @@ on:
 
 jobs:
   run-with-defaults:
-    name: "Run with defaults"
+    name: 'Run with defaults'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./run-nitro-test-node
 
   run-with-token-bridge:
-    name: "Run without token bridge deployment"
+    name: 'Run with token bridge deployment'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./run-nitro-test-node
         with:
-          no-token-bridge: true
+          args: --tokenbridge
 
-  run-with-args:
-    name: "Run with args"
+  run-with-l3:
+    name: 'Run with L3'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./run-nitro-test-node
         with:
-          args: --detach
+          args: --tokenbridge --l3node
 
-  run-with-simple:
-    name: "Run in simple mode"
+  run-with-l3-with-token-bridge:
+    name: 'Run with L3 with token bridge deployment'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./run-nitro-test-node
         with:
-          no-simple: false
+          args: --tokenbridge --l3node --l3-token-bridge
+
+  run-with-no-simple:
+    name: 'Run with --no-simple mode'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./run-nitro-test-node
+        with:
+          args: --no-simple
