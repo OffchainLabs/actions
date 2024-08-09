@@ -9,7 +9,7 @@ runs:
   using: "composite"
   steps:
     - name: Restore "node_modules" from cache
-      uses: martijnhols/actions-cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: "**/node_modules"
         key: ${{ inputs.cache-key }}
