@@ -1,45 +1,29 @@
 name: Run Nitro Test Node
-description: "Checks out the Nitro repository and runs the local test node setup"
+description: 'Checks out the Nitro repository and runs the local test node setup'
 inputs:
-  no-token-bridge:
-    required: false
-    default: "false"
-    description: "Whether to skip deploying the token bridge on the test node"
-  no-l3-token-bridge:
-    required: false
-    default: "false"
-    description: "Whether to skip deploying the L3 token bridge on the test node"
-  no-simple:
-    required: false
-    default: "true"
-    description: "Whether to start the test node in simple mode"
-  args:
-    required: false
-    default: ""
-    description: "Additional args that can be supplied to the test node script"
   nitro-testnode-ref:
     required: false
-    default: "release"
-    description: "The nitro-testnode branch to use"
-  l3-node:
-    required: false
-    default: "false"
-    description: "Whether to start an L3 node in addition to the L2 node"
+    default: 'release'
+    description: 'The nitro-testnode branch to use'
   nitro-contracts-branch:
     required: false
-    description: "The nitro-contracts branch to use"
+    description: 'The nitro-contracts branch to use'
   token-bridge-branch:
     required: false
-    description: "The token-bridge-contracts branch to use"
+    description: 'The token-bridge-contracts branch to use'
+  args:
+    required: false
+    default: ''
+    description: 'Additional args that can be supplied to the test node script'
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         repository: OffchainLabs/nitro-testnode
         submodules: true
-        path: "nitro-testnode"
+        path: 'nitro-testnode'
         ref: ${{ inputs.nitro-testnode-ref }}
 
     - name: Start background nitro-testnode test-node.bash
@@ -57,11 +41,7 @@ runs:
           export TOKEN_BRIDGE_BRANCH="${{ inputs.token-bridge-branch }}"
         fi
 
-        ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
-          ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
-          ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
-          ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
-          ${{ inputs.args }} &
+        ./test-node.bash --init ${{ inputs.args }} &
 
     - name: Wait for nitro startup
       shell: bash
