@@ -1,5 +1,5 @@
-name: Run Nitro Test Node
-description: 'Checks out the Nitro repository and runs the local test node setup'
+name: Run nitro-testnode
+description: 'Checks out the nitro-testnode repository and runs the local testnode'
 inputs:
   nitro-testnode-ref:
     required: false
@@ -14,7 +14,7 @@ inputs:
   args:
     required: false
     default: ''
-    description: 'Additional args that can be supplied to the test node script'
+    description: 'Additional args that can be supplied to the testnode script'
 runs:
   using: 'composite'
   steps:
