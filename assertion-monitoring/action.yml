@@ -1,0 +1,62 @@
+name: "Assertion Monitor"
+description: "Check for chains that have not posted an assertion in the last seven days"
+
+inputs:
+  config:
+    description: "JSON configuration for the child chains to monitor"
+    required: true
+  from-block:
+    description: "Starting block number for scanning (optional)"
+    required: false
+  to-block:
+    description: "Ending block number for scanning (optional)"
+    required: false
+  enable-alerting:
+    description: "Enable error generation and reporting to Slack"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        repository: OffchainLabs/arbitrum-monitoring
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: "20"
+
+    - name: Install dependencies
+      run: yarn install
+      shell: bash
+
+    - name: Create config file
+      run: echo '${{ inputs.config }}' > config.json
+      shell: bash
+
+    - name: Run Assertion Monitor
+      run: |
+        cd packages/assertion-monitor
+        COMMAND="yarn dev --configPath=../../config.json"
+        if [ -n "${{ inputs.from-block }}" ]; then
+          COMMAND="$COMMAND --fromBlock=${{ inputs.from-block }}"
+        fi
+        if [ -n "${{ inputs.to-block }}" ]; then
+          COMMAND="$COMMAND --toBlock=${{ inputs.to-block }}"
+        fi
+        if [ "${{ inputs.enable-alerting }}" = "true" ]; then
+          COMMAND="$COMMAND --enableAlerting"
+        fi
+        $COMMAND
+      shell: bash
+      env:
+        NODE_ENV: CI
+
+    - name: Check for errors
+      if: failure()
+      run: |
+        echo "Assertion Monitor failed. Please check the logs for more information."
+      shell: bash
