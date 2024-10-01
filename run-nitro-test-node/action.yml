@@ -63,6 +63,15 @@ runs:
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
           ${{ inputs.args }} &
 
+    - name: Wait for nitro-testnode container creation
+      shell: bash
+      run: |
+        while [ -z "$(docker ps -q -f name=nitro-testnode)" ]; do
+          echo "Waiting for nitro-testnode container to be created..."
+          sleep 3
+        done
+        echo "nitro-testnode container created."
+
     - name: Stream nitro-testnode logs
       shell: bash
       run: |
