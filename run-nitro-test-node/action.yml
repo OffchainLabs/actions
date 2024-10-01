@@ -63,6 +63,11 @@ runs:
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
           ${{ inputs.args }} &
 
+    - name: Stream nitro-testnode logs
+      shell: bash
+      run: |
+        docker logs -f nitro-testnode &
+
     - name: Wait for nitro startup
       shell: bash
       run: ${{ github.action_path }}/waitForNitro.sh 8547
