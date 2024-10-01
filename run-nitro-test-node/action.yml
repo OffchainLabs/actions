@@ -44,9 +44,6 @@ runs:
 
     - name: Start background nitro-testnode test-node.bash
       shell: bash
-      # Currently, you can't run parallel steps, so we add the "&" to run this step in the background
-      #
-      # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
 
@@ -66,16 +63,28 @@ runs:
     - name: Wait for nitro-testnode container creation
       shell: bash
       run: |
-        while [ -z "$(docker ps -q -f name=nitro-testnode)" ]; do
-          echo "Waiting for nitro-testnode container to be created..."
+        echo "Waiting for nitro-testnode container to start..."
+        while [ -z "$(docker ps -a -q -f name=nitro-testnode)" ]; do
           sleep 3
         done
-        echo "nitro-testnode container created."
+        echo "nitro-testnode container started or exists."
 
-    - name: Stream nitro-testnode logs
+    - name: Stream nitro-testnode logs (with delay)
       shell: bash
       run: |
+        sleep 5  # Short delay to ensure the container is fully up
         docker logs -f nitro-testnode &
+
+    - name: Capture Docker events for debugging
+      shell: bash
+      run: |
+        docker events --filter container=nitro-testnode --filter event=start --filter event=die --filter event=stop --filter event=destroy --filter event=kill &
+
+    - name: List all containers (for debugging)
+      shell: bash
+      run: |
+        echo "Listing all Docker containers for debugging:"
+        docker ps -a
 
     - name: Wait for nitro startup
       shell: bash
