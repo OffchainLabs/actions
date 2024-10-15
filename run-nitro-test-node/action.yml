@@ -19,7 +19,7 @@ inputs:
     description: "Additional args that can be supplied to the test node script"
   nitro-testnode-ref:
     required: false
-    default: "release"
+    default: "v3.2.1-d81324d"
     description: "The nitro-testnode branch to use"
   l3-node:
     required: false
