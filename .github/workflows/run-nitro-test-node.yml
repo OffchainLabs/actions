@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./run-nitro-test-node
         with:
-          args: --detach
+          args: --pos
 
   run-with-simple:
     name: "Run in simple mode"
