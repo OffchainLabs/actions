@@ -19,7 +19,7 @@ inputs:
     description: "Additional args that can be supplied to the test node script"
   nitro-testnode-ref:
     required: false
-    default: "docker-layer"
+    default: "release"
     description: "The nitro-testnode branch to use"
   l3-node:
     required: false
