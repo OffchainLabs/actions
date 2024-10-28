@@ -2,8 +2,8 @@
 
 PORT=${1:-8547}
 
-# timeout after around 10 minutes
-for i in {1..60}
+# timeout after around 1 minutes, should be enough because test-node.bash only detach after everything is ready
+for i in {1..6}
 do
   curl --silent -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":45678,"method":"eth_chainId","params":[]}' "http://localhost:$PORT"
   if [ "$?" -eq "0" ]; then
