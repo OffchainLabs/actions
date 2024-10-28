@@ -66,7 +66,7 @@ runs:
           export TOKEN_BRIDGE_BRANCH="${{ inputs.token-bridge-branch }}"
         fi
 
-        ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
+        ./test-node.bash --init-force ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
           ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
