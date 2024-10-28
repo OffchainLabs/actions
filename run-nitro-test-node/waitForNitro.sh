@@ -14,6 +14,6 @@ do
     sleep 10
   fi
 done
-echo "exiting: printing docker logs"
+echo "exiting: printing docker logs for everything"
 docker compose -f ./nitro-testnode/docker-compose.yaml logs
 exit 1
