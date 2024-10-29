@@ -70,7 +70,7 @@ runs:
           ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
-          ${{ inputs.args }} --detach --ci
+          ${{ inputs.args }} --detach --nowait --ci
 
     - name: Wait for nitro startup
       shell: bash
