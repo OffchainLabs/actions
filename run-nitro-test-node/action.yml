@@ -57,7 +57,8 @@ runs:
           export TOKEN_BRIDGE_BRANCH="${{ inputs.token-bridge-branch }}"
         fi
 
-        ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
+        ./test-node.bash --init \
+          ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
           ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
@@ -68,16 +69,16 @@ runs:
       run: ${{ github.action_path }}/waitForNitro.sh 8547
 
     - name: Wait for L3 startup
-      if: ${{ inputs.l3-node == 'true' }}
+      if: ${{ contains(inputs.args, '--l3node') || inputs.l3-node == 'true' }}
       shell: bash
       run: ${{ github.action_path }}/waitForNitro.sh 3347
 
     - name: Wait for token bridge deployment
-      if: ${{ inputs.no-token-bridge != 'true' }}
+      if: ${{ contains(inputs.args, '--tokenbridge') || inputs.no-token-bridge != 'true' }}
       shell: bash
       run: ${{ github.action_path }}/waitForTokenBridge.sh localNetwork.json
 
     - name: Wait for token bridge deployment
-      if: ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' }}
+      if: ${{ contains(inputs.args, '--l3-token-bridge') || (inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true') }}
       shell: bash
       run: ${{ github.action_path }}/waitForTokenBridge.sh l2l3_network.json
