@@ -19,7 +19,7 @@ inputs:
     description: "Additional args that can be supplied to the test node script"
   nitro-testnode-ref:
     required: false
-    default: "release"
+    default: "v3.2.1-d81324d"
     description: "The nitro-testnode branch to use"
   l3-node:
     required: false
@@ -31,6 +31,10 @@ inputs:
   token-bridge-branch:
     required: false
     description: "The token-bridge-contracts branch to use"
+  debug:
+    required: false
+    default: "false"
+    description: "Whether to run the testnode in debug mode"
 runs:
   using: "composite"
   steps:
@@ -44,7 +48,8 @@ runs:
 
     - name: Start background nitro-testnode test-node.bash
       shell: bash
-      # Currently, you can't run parallel steps, so we add the "&" to run this step in the background
+      # Currently, you can't run parallel steps, so we add the "&" at the very end to run this step in the background.
+      # When debug mode is enabled, the testnode will run in the foreground, enabling you to see the output.
       #
       # See https://stackoverflow.com/a/72203688 for more info
       run: |
@@ -61,7 +66,7 @@ runs:
           ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
-          ${{ inputs.args }} &
+          ${{ inputs.args }}
 
     - name: Wait for nitro startup
       shell: bash
