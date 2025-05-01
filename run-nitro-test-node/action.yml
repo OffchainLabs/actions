@@ -57,20 +57,32 @@ runs:
           export TOKEN_BRIDGE_BRANCH="${{ inputs.token-bridge-branch }}"
         fi
 
+        # Send all node output to a temp log while still running in background
+        LOG_FILE="$RUNNER_TEMP/nitro.log"
         ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
           ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
-          ${{ inputs.args }} &
+          ${{ inputs.args }} 2>&1 | tee -a "$LOG_FILE" &
 
     - name: Wait for nitro startup
       shell: bash
-      run: ${{ github.action_path }}/waitForNitro.sh 8547
+      run: |
+        LOG_FILE="$RUNNER_TEMP/nitro.log"
+        tail -f "$LOG_FILE" &
+        TAIL_PID=$!
+        ${{ github.action_path }}/waitForNitro.sh 8547
+        kill $TAIL_PID
 
     - name: Wait for L3 startup
       if: ${{ inputs.l3-node == 'true' }}
       shell: bash
-      run: ${{ github.action_path }}/waitForNitro.sh 3347
+      run: |
+        LOG_FILE="$RUNNER_TEMP/nitro.log"
+        tail -f "$LOG_FILE" &
+        TAIL_PID=$!
+        ${{ github.action_path }}/waitForNitro.sh 3347
+        kill $TAIL_PID
 
     - name: Wait for token bridge deployment
       if: ${{ inputs.no-token-bridge != 'true' }}
