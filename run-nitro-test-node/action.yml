@@ -41,14 +41,6 @@ runs:
         sudo apt-get update
         sudo apt-get install -y libc6
 
-    - name: Install Foundry
-      shell: bash
-      run: |
-        curl -L https://foundry.paradigm.xyz | bash
-        export PATH="$PATH:$HOME/.foundry/bin"
-        foundryup
-        echo "$HOME/.foundry/bin" >> $GITHUB_PATH
-
     - name: Checkout
       uses: actions/checkout@v4
       with:
