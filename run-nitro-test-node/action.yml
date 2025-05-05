@@ -44,9 +44,6 @@ runs:
 
     - name: Start background nitro-testnode test-node.bash
       shell: bash
-      # Currently, you can't run parallel steps, so we add the "&" to run this step in the background
-      #
-      # See https://stackoverflow.com/a/72203688 for more info
       run: |
         cd nitro-testnode
 
@@ -57,11 +54,11 @@ runs:
           export TOKEN_BRIDGE_BRANCH="${{ inputs.token-bridge-branch }}"
         fi
 
-        ./test-node.bash --init ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
+        ./test-node.bash --init-force ${{ inputs.no-simple == 'true' && '--no-simple' || '' }} \
           ${{ inputs.l3-node == 'true' && '--l3node' || '' }} \
           ${{ inputs.no-token-bridge == 'true' && '--no-tokenbridge' || '--tokenbridge' }} \
           ${{ inputs.l3-node == 'true' && inputs.no-l3-token-bridge != 'true' && '--l3-token-bridge' || '' }} \
-          ${{ inputs.args }} &
+          ${{ inputs.args }} --detach --nowait
 
     - name: Wait for nitro startup
       shell: bash
