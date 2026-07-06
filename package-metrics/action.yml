@@ -24,8 +24,10 @@ inputs:
 outputs:
   json-path:
     description: 'Path to the written JSON report file'
+    value: ${{ steps.run-package-metrics.outputs.json-path }}
   json:
     description: 'The JSON report, stringified'
+    value: ${{ steps.run-package-metrics.outputs.json }}
 runs:
   using: 'composite'
   steps:
@@ -43,6 +45,7 @@ runs:
       run: npm ci --prefix ${{ github.action_path }}
 
     - name: Run package metrics
+      id: run-package-metrics
       shell: bash
       run: node ${{ github.action_path }}/src/index.mjs
       # Composite actions don't get automatic INPUT_* mapping like top-level JS
@@ -55,3 +58,10 @@ runs:
         INPUT_ENABLE-COMMENT: ${{ inputs.enable-comment }}
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
         INPUT_OUTPUT-PATH: ${{ inputs.output-path }}
+
+    - name: Upload package metrics result
+      if: steps.run-package-metrics.outputs.json-path != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: package-metrics-result
+        path: ${{ steps.run-package-metrics.outputs.json-path }}
