@@ -1,0 +1,14 @@
+{
+  "name": "package-metrics",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Measures npm package size metrics (packed size, bundle size, install size) for use by the actions/package-metrics GitHub Action",
+  "type": "module",
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^9.1.1",
+    "esbuild": "^0.28.1",
+    "tar": "^7.4.3"
+  }
+}

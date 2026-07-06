@@ -1,0 +1,57 @@
+name: actions/package-metrics
+description: 'Measure npm package size metrics (packed size, bundle size, install size) and optionally comment results on the PR'
+inputs:
+  paths:
+    description: 'Newline-separated list of paths (relative to the workspace root) to packages to measure. Ignored when is-monorepo is true.'
+    required: false
+    default: ''
+  is-monorepo:
+    description: 'When true, auto-discover every package under <workspace-root>/packages/* and ignore the paths input'
+    required: false
+    default: 'false'
+  enable-comment:
+    description: 'When true, post (or update) a PR comment with the results. Requires permissions: pull-requests: write on the calling job.'
+    required: false
+    default: 'false'
+  github-token:
+    description: 'Token used to read/write the PR comment'
+    required: false
+    default: ${{ github.token }}
+  output-path:
+    description: 'Path to write the resulting JSON report to'
+    required: false
+    default: package-metrics-result.json
+outputs:
+  json-path:
+    description: 'Path to the written JSON report file'
+  json:
+    description: 'The JSON report, stringified'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install corepack
+      shell: bash
+      run: npm install -g corepack@latest
+
+    - name: Install action dependencies
+      shell: bash
+      run: npm ci --prefix ${{ github.action_path }}
+
+    - name: Run package metrics
+      shell: bash
+      run: node ${{ github.action_path }}/src/index.mjs
+      # Composite actions don't get automatic INPUT_* mapping like top-level JS
+      # actions do, so we map them by hand — and core.getInput() only replaces
+      # spaces with underscores, not dashes, so dashed input names must keep
+      # their literal dash here (e.g. is-monorepo -> INPUT_IS-MONOREPO).
+      env:
+        INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_IS-MONOREPO: ${{ inputs.is-monorepo }}
+        INPUT_ENABLE-COMMENT: ${{ inputs.enable-comment }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+        INPUT_OUTPUT-PATH: ${{ inputs.output-path }}
