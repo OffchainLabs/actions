@@ -7,6 +7,7 @@ import { pack } from './pack.mjs';
 import { packedSize } from './metrics/packedSize.mjs';
 import { bundleSize } from './metrics/bundleSize.mjs';
 import { installSize } from './metrics/installSize.mjs';
+import { postComment } from './comment.mjs';
 
 // First statement: fork-PR guard. Checked before any other input is read, and
 // before discoverPackages/pack ever run — a fork-triggered `pull_request` run
@@ -29,10 +30,8 @@ async function run() {
   const paths = core.getInput('paths');
   const isMonorepo = core.getBooleanInput('is-monorepo');
   const outputPathInput = core.getInput('output-path');
-  // Read but not acted upon here — enable-comment/github-token are Phase 4's
-  // responsibility (posting/updating the PR comment). Left as a TODO hook.
-  // const enableComment = core.getBooleanInput('enable-comment');
-  // const githubToken = core.getInput('github-token');
+  const enableComment = core.getBooleanInput('enable-comment');
+  const githubToken = core.getInput('github-token');
 
   const workspaceRoot = process.env.GITHUB_WORKSPACE ?? process.cwd();
 
@@ -82,6 +81,16 @@ async function run() {
 
   core.setOutput('json-path', outputPath);
   core.setOutput('json', JSON.stringify(result));
+
+  // Comment posting is only applicable on `pull_request` runs (there's no
+  // issue/PR to comment on for a `push` run) and only when the caller opted
+  // in — every other combination is a silent no-op, not a warning or error.
+  // postComment() itself never throws (see comment.mjs), so no try/catch is
+  // needed here — a failure there degrades to a core.warning, well after the
+  // JSON artifact above has already been written and the outputs already set.
+  if (enableComment && context.eventName === 'pull_request') {
+    await postComment(result, githubToken);
+  }
 }
 
 async function buildPackageRecord(pkg, packResult, allSiblingTgzPaths) {
