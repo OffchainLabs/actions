@@ -36,6 +36,19 @@ jobs:
           is-monorepo: true
 ```
 
+To measure specific packages instead of auto-discovering a `packages/` directory,
+use `paths` — one relative path per line:
+
+```yml
+      - name: Measure package metrics
+        uses: OffchainLabs/actions/package-metrics@main
+        with:
+          is-monorepo: false
+          paths: |
+            packages/foo
+            packages/bar
+```
+
 ## Inputs
 
 | Name             | Description                                                                                              | Required | Default                     |
@@ -44,7 +57,6 @@ jobs:
 | `is-monorepo`      | When `true`, auto-discover every package under `<workspace-root>/packages/*` and ignore the `paths` input.        | No       | `false`                        |
 | `enable-comment`   | When `true`, post (or update) a PR comment with the results. Requires `permissions: pull-requests: write` on the calling job — see below. | No       | `false`                        |
 | `github-token`     | Token used to read/write the PR comment.                                                                            | No       | `${{ github.token }}`          |
-| `output-path`      | Path to write the resulting JSON report to.                                                                        | No       | `package-metrics-result.json` |
 
 ## Outputs
 
@@ -53,25 +65,24 @@ jobs:
 | `json-path`     | Path to the written JSON report file.            |
 | `json`          | The JSON report, stringified.                     |
 
-The written JSON file is also uploaded as a `package-metrics-result` workflow artifact
-on every run that actually collects metrics — not on runs skipped entirely (fork PRs,
-see below) or runs that fail before discovery completes.
+Always written to `package-metrics-result.json` at the workspace root — this is
+intentionally fixed, not configurable, so that scraping this file across many repos
+doesn't require discovering a per-repo path first. It's also uploaded as a
+`package-metrics-result` workflow artifact on every run that actually collects
+metrics — not on runs skipped entirely (fork PRs, see below) or runs that fail before
+discovery completes.
 
 ## `enable-comment` requires a job-scoped permission
 
-`permissions:` blocks are static YAML — this action cannot request write access only
-when `enable-comment: true` is passed, since GitHub resolves permissions before the
-job runs. **Only the specific job(s) that pass `enable-comment: true` should declare**:
+If you set `enable-comment: true`, that job needs:
 
 ```yml
 permissions:
   pull-requests: write
 ```
 
-Every other job that only wants the size metrics (no comment) should be left at the
-repo's default (read-only) token permissions — do not grant this repo-/workflow-wide.
-If the permission is missing, the action does not fail the job: it logs a
-`core.warning` and the JSON artifact is still produced.
+Only add this to the specific job that enables comments — leave every other job at
+the repo's default permissions.
 
 ## pnpm / Yarn Berry workspace support
 
@@ -128,3 +139,26 @@ external/fork-originated contributions.
 - `metrics.*` — raw byte counts. Any metric that failed to collect is `null`, with a
   corresponding entry in that package's `errors` object (keyed by metric name) — a
   metric-collection failure never fails the overall action run.
+
+## Contributing
+
+This repo has no unit test framework (see the rest of the actions in this repo — the
+convention here is self-test GitHub Actions workflows, not jest/vitest). Instead,
+[`.github/workflows/package-metrics.yml`](../.github/workflows/package-metrics.yml)
+runs this action against the fixture packages in
+[`__fixtures__/`](./__fixtures__) on every PR to this repo, exercising the action's
+own code paths the same way a real consumer would — that's what gives confidence a
+change didn't break anything before it ships to `OffchainLabs/actions/package-metrics@main`.
+
+The fixtures:
+
+- `__fixtures__/monorepo/packages/{pkg-a,pkg-b}` — exercises `is-monorepo: true`
+  auto-discovery.
+- `__fixtures__/single-pkg` — exercises `is-monorepo: false` with an explicit `paths`
+  input.
+- `__fixtures__/pnpm-monorepo` — a real pnpm workspace where `pkg-b` depends on
+  `pkg-a` via `workspace:*` — exercises package-manager detection and the
+  unpublished-sibling `file:` resolution logic.
+
+If you add a new scenario this action needs to handle, add or extend a fixture for it
+and a corresponding job in `package-metrics.yml`, following the same pattern.

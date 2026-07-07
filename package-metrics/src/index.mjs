@@ -1,13 +1,19 @@
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import * as core from '@actions/core';
-import { context } from '@actions/github';
+import { context } from './context.mjs';
 import { discoverPackages } from './discoverPackages.mjs';
 import { pack } from './pack.mjs';
 import { packedSize } from './metrics/packedSize.mjs';
 import { bundleSize } from './metrics/bundleSize.mjs';
 import { installSize } from './metrics/installSize.mjs';
 import { postComment } from './comment.mjs';
+
+// Fixed name/location for the JSON artifact — deliberately not configurable.
+// This action runs across many repos, and a future job scraping every run's
+// artifact to feed a time-series store needs one predictable path per repo,
+// not a per-caller-configured one it would have to discover first.
+const OUTPUT_FILENAME = 'package-metrics-result.json';
 
 // First statement: fork-PR guard. Checked before any other input is read, and
 // before discoverPackages/pack ever run — a fork-triggered `pull_request` run
@@ -29,7 +35,6 @@ if (
 async function run() {
   const paths = core.getInput('paths');
   const isMonorepo = core.getBooleanInput('is-monorepo');
-  const outputPathInput = core.getInput('output-path');
   const enableComment = core.getBooleanInput('enable-comment');
   const githubToken = core.getInput('github-token');
 
@@ -76,7 +81,7 @@ async function run() {
     packages: packageRecords,
   };
 
-  const outputPath = path.resolve(workspaceRoot, outputPathInput);
+  const outputPath = path.join(workspaceRoot, OUTPUT_FILENAME);
   writeFileSync(outputPath, JSON.stringify(result, null, 2));
 
   core.setOutput('json-path', outputPath);

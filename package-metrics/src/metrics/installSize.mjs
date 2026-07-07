@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import * as exec from '@actions/exec';
-import * as tar from 'tar';
 import { sumDirSize } from '../fsSize.mjs';
 
 /**
@@ -30,7 +29,9 @@ export async function installSize(tgzPath, siblingTgzPaths = {}) {
   let scratchDir;
   try {
     extractDir = await mkdtemp(path.join(tmpdir(), 'package-metrics-installsize-extract-'));
-    await tar.x({ file: tgzPath, cwd: extractDir });
+    // Shell out to the system `tar` binary (always present on GitHub-hosted
+    // runners) instead of depending on the `tar` npm package.
+    await exec.exec('tar', ['-xf', tgzPath, '-C', extractDir]);
 
     // npm/pnpm/yarn tarballs all extract under a `package/` prefix directory
     // (verified against real tarballs from all three managers during Phase 2

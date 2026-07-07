@@ -17,10 +17,6 @@ inputs:
     description: 'Token used to read/write the PR comment'
     required: false
     default: ${{ github.token }}
-  output-path:
-    description: 'Path to write the resulting JSON report to'
-    required: false
-    default: package-metrics-result.json
 outputs:
   json-path:
     description: 'Path to the written JSON report file'
@@ -57,7 +53,6 @@ runs:
         INPUT_IS-MONOREPO: ${{ inputs.is-monorepo }}
         INPUT_ENABLE-COMMENT: ${{ inputs.enable-comment }}
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
-        INPUT_OUTPUT-PATH: ${{ inputs.output-path }}
 
     - name: Upload package metrics result
       if: steps.run-package-metrics.outputs.json-path != ''

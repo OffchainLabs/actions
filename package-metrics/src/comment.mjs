@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { context, getOctokit } from '@actions/github';
+import { context } from './context.mjs';
 import { formatBytes } from './formatBytes.mjs';
 
 // First line of every comment body this module posts/updates — used both to
@@ -10,8 +10,8 @@ export const MARKER = '<!-- package-metrics-report -->';
 
 /**
  * Pure markdown builder — no network/I/O, so it's directly unit-testable
- * without mocking octokit. Exported separately from `postComment` for that
- * reason.
+ * without mocking the GitHub API. Exported separately from `postComment` for
+ * that reason.
  *
  * @param {object} result - the same {schemaVersion, commit, timestamp,
  *   packages} object written to the JSON artifact by index.mjs.
@@ -74,6 +74,51 @@ function escapeTableCell(value) {
   return value.replace(/\|/g, '\\|');
 }
 
+const GITHUB_API_VERSION = '2022-11-28';
+
+/**
+ * Hand-rolled REST client for the 3 endpoints this module needs (list/create/
+ * update issue comments) — avoids depending on @actions/github, which
+ * otherwise pulls in the entire octokit package tree just for this. Node 20's
+ * built-in `fetch` is sufficient. See
+ * https://docs.github.com/en/rest/issues/comments for the endpoints used.
+ */
+async function githubApiRequest(token, method, path, body) {
+  const response = await fetch(`https://api.github.com${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': GITHUB_API_VERSION,
+      'User-Agent': 'package-metrics-action',
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    throw new Error(`GitHub API ${method} ${path} failed: ${response.status} ${await response.text()}`);
+  }
+  return response.status === 204 ? null : response.json();
+}
+
+async function listAllComments(token, owner, repo, issueNumber) {
+  const comments = [];
+  // Paginate rather than a single request — a long-lived PR can have more
+  // than one page (100 per page here) of comments, and the marker comment
+  // could be anywhere in that history.
+  for (let page = 1; ; page++) {
+    const pageOfComments = await githubApiRequest(
+      token,
+      'GET',
+      `/repos/${owner}/${repo}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
+    );
+    comments.push(...pageOfComments);
+    if (pageOfComments.length < 100) {
+      return comments;
+    }
+  }
+}
+
 /**
  * Posts a new PR comment, or updates the existing one (found via `MARKER`)
  * if this action has already commented on this PR before.
@@ -97,24 +142,17 @@ export async function postComment(result, githubToken) {
 
     const body = buildCommentBody(result, runUrl);
 
-    const octokit = getOctokit(githubToken);
-
-    // Paginate rather than a single listComments call — a long-lived PR can
-    // have more than one page (default 30 per page) of comments, and the
-    // marker comment could be anywhere in that history.
-    const comments = await octokit.paginate(octokit.rest.issues.listComments, {
-      owner,
-      repo,
-      issue_number,
-      per_page: 100,
-    });
-
+    const comments = await listAllComments(githubToken, owner, repo, issue_number);
     const existing = comments.find((c) => c.body?.includes(MARKER));
 
     if (existing) {
-      await octokit.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+      await githubApiRequest(githubToken, 'PATCH', `/repos/${owner}/${repo}/issues/comments/${existing.id}`, {
+        body,
+      });
     } else {
-      await octokit.rest.issues.createComment({ owner, repo, issue_number, body });
+      await githubApiRequest(githubToken, 'POST', `/repos/${owner}/${repo}/issues/${issue_number}/comments`, {
+        body,
+      });
     }
   } catch (err) {
     core.warning(`package-metrics: failed to post/update PR comment — ${err.message}`);
