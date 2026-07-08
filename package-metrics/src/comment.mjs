@@ -2,24 +2,10 @@ import * as core from '@actions/core';
 import { context } from './context.mjs';
 import { formatBytes } from './formatBytes.mjs';
 
-// First line of every comment body this module posts/updates — used both to
-// render the (invisible, in GitHub's rendered view) marker and to find an
-// existing comment to update in place rather than spamming a new one every
-// run.
+// Marks this action's comments so they can be found and updated in place.
 export const MARKER = '<!-- package-metrics-report -->';
 
-/**
- * Pure markdown builder — no network/I/O, so it's directly unit-testable
- * without mocking the GitHub API. Exported separately from `postComment` for
- * that reason.
- *
- * @param {object} result - the same {schemaVersion, commit, timestamp,
- *   packages} object written to the JSON artifact by index.mjs.
- * @param {string} runUrl - link to the workflow run, used for the footer's
- *   "Full JSON report" link (the JSON itself is only available as this run's
- *   uploaded artifact, not inline in the comment).
- * @returns {string} the full markdown comment body.
- */
+// Pure markdown builder — no I/O, so it's directly unit-testable.
 export function buildCommentBody(result, runUrl) {
   const shortSha = result.commit.slice(0, 7);
 
@@ -48,9 +34,7 @@ export function buildCommentBody(result, runUrl) {
     '',
   ];
 
-  // The details block is omitted entirely (not just left empty) when there
-  // are zero errors across every package — a deliberate per-plan requirement,
-  // not just a cosmetic choice.
+  // Omitted entirely (not just empty) when there are zero errors.
   if (errorLines.length > 0) {
     lines.push(
       '<details>',
@@ -68,21 +52,15 @@ export function buildCommentBody(result, runUrl) {
   return lines.join('\n');
 }
 
-// A package.json "name" isn't restricted from containing "|" — an unescaped
-// one would shift/break the markdown table's columns.
+// An unescaped "|" in a package name would break the markdown table.
 function escapeTableCell(value) {
   return value.replace(/\|/g, '\\|');
 }
 
 const GITHUB_API_VERSION = '2022-11-28';
 
-/**
- * Hand-rolled REST client for the 3 endpoints this module needs (list/create/
- * update issue comments) — avoids depending on @actions/github, which
- * otherwise pulls in the entire octokit package tree just for this. Node 20's
- * built-in `fetch` is sufficient. See
- * https://docs.github.com/en/rest/issues/comments for the endpoints used.
- */
+// Hand-rolled REST client for the 3 endpoints this needs, using Node's
+// built-in fetch instead of depending on @actions/github/octokit.
 async function githubApiRequest(token, method, path, body) {
   const response = await fetch(`https://api.github.com${path}`, {
     method,
@@ -103,9 +81,6 @@ async function githubApiRequest(token, method, path, body) {
 
 async function listAllComments(token, owner, repo, issueNumber) {
   const comments = [];
-  // Paginate rather than a single request — a long-lived PR can have more
-  // than one page (100 per page here) of comments, and the marker comment
-  // could be anywhere in that history.
   for (let page = 1; ; page++) {
     const pageOfComments = await githubApiRequest(
       token,
@@ -119,21 +94,9 @@ async function listAllComments(token, owner, repo, issueNumber) {
   }
 }
 
-/**
- * Posts a new PR comment, or updates the existing one (found via `MARKER`)
- * if this action has already commented on this PR before.
- *
- * Never throws: any failure — a bad/insufficiently-scoped token, a missing
- * `pull-requests: write` permission on the caller's job (a 403), a network
- * error, anything — is caught and surfaced as a `core.warning` only. Per the
- * plan's "never fail the job" policy, a failed comment must never fail (or
- * even mark as failed) the overall run, since the JSON artifact — this
- * feature's primary output — has already been written successfully by the
- * time this is called.
- *
- * @param {object} result - same shape as `buildCommentBody`'s `result` param.
- * @param {string} githubToken - token to authenticate the comment API calls.
- */
+// Posts a new comment, or updates the existing one found via MARKER. Never
+// throws — any failure (bad token, missing permission, network) degrades to
+// a core.warning, since the JSON artifact is already written by this point.
 export async function postComment(result, githubToken) {
   try {
     const { owner, repo } = context.repo;

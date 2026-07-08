@@ -44,10 +44,6 @@ runs:
       id: run-package-metrics
       shell: bash
       run: node ${{ github.action_path }}/src/index.mjs
-      # Composite actions don't get automatic INPUT_* mapping like top-level JS
-      # actions do, so we map them by hand — and core.getInput() only replaces
-      # spaces with underscores, not dashes, so dashed input names must keep
-      # their literal dash here (e.g. is-monorepo -> INPUT_IS-MONOREPO).
       env:
         INPUT_PATHS: ${{ inputs.paths }}
         INPUT_IS-MONOREPO: ${{ inputs.is-monorepo }}

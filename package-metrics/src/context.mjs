@@ -1,15 +1,8 @@
 import { readFileSync } from 'node:fs';
 
-/**
- * Hand-rolled equivalent of @actions/github's `context` export — only the
- * handful of fields this action actually reads (eventName, sha, payload,
- * repo, issue.number, runId, serverUrl). Reimplemented directly from
- * documented GitHub Actions default environment variables instead of
- * depending on @actions/github, which otherwise pulls in the entire octokit
- * package tree just for this. See
- * https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
- * — all of these are always set by the runner, for every trigger type.
- */
+// Hand-rolled equivalent of @actions/github's `context` — only the fields
+// this action uses, read from GitHub's default env vars, to avoid depending
+// on @actions/github (which pulls in the whole octokit tree).
 function readPayload() {
   const eventPath = process.env.GITHUB_EVENT_PATH;
   if (!eventPath) {

@@ -3,16 +3,8 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import * as esbuild from 'esbuild';
 
-/**
- * Fully bundle a package's primary entry point (including its dependencies —
- * not externalized, per the locked-in decision that this metric represents
- * real consumer impact) and measure the resulting size, minified and gzipped.
- *
- * @param {string} pkgPath - absolute path to the package directory
- * @returns {Promise<{ bundleSize: number|null, bundleSizeGzip: number|null, error: string|null }>}
- *   Never throws — an unresolvable entry point or a build failure (e.g. a
- *   syntax error) is caught and surfaced as `{ error }` with both sizes `null`.
- */
+// Bundles the package's own entry point including dependencies (not
+// externalized), to reflect real consumer impact. Never throws.
 export async function bundleSize(pkgPath) {
   try {
     const entry = resolveEntry(pkgPath);
@@ -22,10 +14,7 @@ export async function bundleSize(pkgPath) {
       minify: true,
       write: false,
       absWorkingDir: pkgPath,
-      // Without this, esbuild defaults to `platform: 'browser'`, which can't
-      // resolve `node:`-prefixed built-ins (or bare built-in names like `fs`)
-      // pulled in directly or transitively — and this action measures
-      // Node.js npm packages specifically, so bundling must target Node.
+      // esbuild defaults to platform: 'browser', which can't resolve Node builtins.
       platform: 'node',
     });
     const buffers = result.outputFiles.map((file) => Buffer.from(file.contents));
@@ -37,10 +26,7 @@ export async function bundleSize(pkgPath) {
   }
 }
 
-/**
- * Resolve the entry point from the package's own package.json:
- * `main` -> `module` -> `exports['.']` (default condition) -> `index.js` fallback.
- */
+// main -> module -> exports['.'] -> index.js fallback.
 function resolveEntry(pkgPath) {
   const pkgJsonPath = path.join(pkgPath, 'package.json');
   const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
