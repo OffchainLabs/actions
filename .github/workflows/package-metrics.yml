@@ -8,6 +8,8 @@ jobs:
   monorepo-discovery:
     name: "Monorepo discovery (is-monorepo: true)"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +26,8 @@ jobs:
   explicit-paths:
     name: "Explicit paths (is-monorepo: false)"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -35,8 +39,8 @@ jobs:
   with-comment:
     name: "PR comment (enable-comment: true)"
     runs-on: ubuntu-latest
-    # Only this job needs write access, for the PR comment.
     permissions:
+      contents: read
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +54,8 @@ jobs:
   pnpm-monorepo:
     name: "pnpm monorepo (workspace:* sibling resolution)"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
