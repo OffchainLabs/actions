@@ -11,13 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # discoverPackages.mjs auto-discovers under `<workspaceRoot>/packages/*`,
-      # and index.mjs derives workspaceRoot from GITHUB_WORKSPACE — which is a
-      # reserved GITHUB_* variable the runner refuses to let any step override
-      # via `env:` (the assignment is silently ignored). So instead of trying
-      # to redirect where the action looks, put the fixture's packages/ where
-      # the action is actually going to look: the real workspace root. This
-      # only exists for the life of this ephemeral job.
+      # GITHUB_WORKSPACE can't be overridden via env:, so stage the fixture
+      # at the real workspace root instead of redirecting the action to it.
       - name: Stage fixture packages at the workspace root
         shell: bash
         run: cp -r package-metrics/__fixtures__/monorepo/packages .
@@ -32,10 +27,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # No GITHUB_WORKSPACE override needed here: discoverExplicitDirs()
-      # resolves every `paths` entry relative to workspaceRoot, and the
-      # default workspaceRoot (the real checkout root) is exactly right for a
-      # path already expressed relative to the repo root.
       - uses: ./package-metrics
         with:
           is-monorepo: false
@@ -44,10 +35,7 @@ jobs:
   with-comment:
     name: "PR comment (enable-comment: true)"
     runs-on: ubuntu-latest
-    # Least-privilege: only this job gets write access to PR comments, since
-    # it's the only job that passes enable-comment: true. Every other job in
-    # this workflow is left at the repo's default (read-only) token
-    # permissions.
+    # Only this job needs write access, for the PR comment.
     permissions:
       pull-requests: write
     steps:
@@ -73,20 +61,10 @@ jobs:
         shell: bash
         run: npm install -g corepack@latest
 
-      # Same reasoning as monorepo-discovery above: GITHUB_WORKSPACE can't be
-      # overridden, so stage the whole pnpm workspace (packages/,
-      # pnpm-workspace.yaml, pnpm-lock.yaml, package.json) at the real
-      # workspace root instead.
       - name: Stage fixture pnpm workspace at the workspace root
         shell: bash
         run: cp -r package-metrics/__fixtures__/pnpm-monorepo/. .
 
-      # This action's precondition: the calling workflow must already have
-      # installed workspace dependencies before invoking it — `pnpm pack`
-      # requires an already-`pnpm install`-ed workspace to resolve
-      # `workspace:*` references. This is what actually exercises the
-      # sibling `file:` resolution path (unpublished workspace sibling) in
-      # real CI, not just in local testing.
       - name: Install pnpm workspace dependencies
         shell: bash
         run: corepack pnpm install --frozen-lockfile
