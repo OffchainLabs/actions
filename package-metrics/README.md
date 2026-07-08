@@ -14,6 +14,21 @@ Without an already-installed workspace:
 - `pnpm pack` / `yarn pack` cannot resolve `workspace:*`/`^`/`~` references.
 - The bundle-size step (esbuild) cannot resolve a package's imports.
 
+## Precondition: checkout the PR's head commit, not the merge commit
+
+On `pull_request` events, `actions/checkout` defaults to the auto-generated merge
+commit, not the PR branch's actual head commit. This action reports the real head
+SHA in its `commit` output regardless, but that's only accurate if the files it
+measured were actually that commit's — if your checkout step doesn't pin the ref,
+you can end up with a `commit` field that doesn't match what was measured (e.g. if
+the base branch moved since the PR was opened). Pin it explicitly:
+
+```yml
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+```
+
 ## Usage
 
 In workflows:
@@ -72,6 +87,9 @@ doesn't require discovering a per-repo path first. It's also uploaded as a
 metrics — not on runs skipped entirely (fork PRs, see below) or runs that fail before
 discovery completes.
 
+The same results table is also written to the run's job summary — visible on the
+workflow run page regardless of `enable-comment`, since it needs no extra permissions.
+
 ## `enable-comment` requires a job-scoped permission
 
 If you set `enable-comment: true`, that job needs:
@@ -110,6 +128,9 @@ external/fork-originated contributions.
 {
   "schemaVersion": 1,
   "commit": "a1b2c3d4e5f6...",
+  "analyzedCommit": "a1b2c3d4e5f6...",
+  "runId": 123456789,
+  "runUrl": "https://github.com/some-org/some-repo/actions/runs/123456789",
   "timestamp": "2026-07-06T14:32:01.000Z",
   "packages": [
     {
@@ -133,6 +154,14 @@ external/fork-originated contributions.
   (e.g. a future artifact-scraping/Grafana ingestion job) should check this field.
 - `commit` — the real commit SHA: the PR's head SHA on `pull_request` events, never
   the ephemeral merge commit GitHub synthesizes for the run.
+- `analyzedCommit` — the actual `git rev-parse HEAD` of the workspace when analysis
+  ran, independent of `commit`. If the calling workflow didn't pin its checkout to
+  `commit` (see the precondition above), this will differ — that drift is now visible
+  directly in the data instead of only in a `core.warning` in the run's log. `null` if
+  it couldn't be determined (e.g. no git repo present).
+- `runId` / `runUrl` — the run this analysis came from, in the *calling* repo. Lets a
+  downstream consumer (or a human investigating a size spike) trace back to that run's
+  steps and logs — e.g. to see exactly what `actions/checkout` did.
 - `timestamp` — single UTC ISO 8601 timestamp for the whole run.
 - `packages` — an array of records, one per discovered package. `name`/`version` come
   from that package's own `package.json` (not its folder name).

@@ -1,13 +1,14 @@
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import * as core from '@actions/core';
+import * as exec from '@actions/exec';
 import { context } from './context.mjs';
 import { discoverPackages } from './discoverPackages.mjs';
 import { pack } from './pack.mjs';
 import { packedSize } from './metrics/packedSize.mjs';
 import { bundleSize } from './metrics/bundleSize.mjs';
 import { installSize } from './metrics/installSize.mjs';
-import { postComment } from './comment.mjs';
+import { buildCommentBody, postComment } from './comment.mjs';
 
 // Fixed, not configurable — lets a future job scrape this across many repos
 // without discovering a per-repo path.
@@ -59,11 +60,23 @@ async function run() {
   // package's installSize may have read another package's tgz.
   await Promise.all(packResults.map((r) => r.cleanup()));
 
+  // context.sha is the merge commit on pull_request events, not the PR's
+  // actual head commit.
+  const commit = context.payload.pull_request?.head?.sha ?? context.sha;
+  const analyzedCommit = await getAnalyzedCommit(workspaceRoot);
+  if (analyzedCommit && analyzedCommit !== commit) {
+    core.warning(
+      `package-metrics: checked-out commit (${analyzedCommit}) doesn't match the reported commit (${commit}) ` +
+        '— pin the checkout step\'s ref to ${{ github.event.pull_request.head.sha }} to fix this.',
+    );
+  }
+
   const result = {
     schemaVersion: 1,
-    // context.sha is the merge commit on pull_request events, not the PR's
-    // actual head commit.
-    commit: context.payload.pull_request?.head?.sha ?? context.sha,
+    commit,
+    analyzedCommit,
+    runId: context.runId,
+    runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
     timestamp: new Date().toISOString(),
     packages: packageRecords,
   };
@@ -74,9 +87,29 @@ async function run() {
   core.setOutput('json-path', outputPath);
   core.setOutput('json', JSON.stringify(result));
 
+  // Independent of enable-comment/PR context — always visible on the run's
+  // own summary page, not just as a PR comment.
+  try {
+    await core.summary.addRaw(buildCommentBody(result)).write();
+  } catch (err) {
+    core.warning(`package-metrics: failed to write job summary — ${err.message}`);
+  }
+
   if (enableComment && context.eventName === 'pull_request') {
     await postComment(result, githubToken);
   }
+}
+
+// The actual git HEAD of the workspace when analysis ran — independent of
+// what `commit` claims, so drift (e.g. an unpinned checkout ref) is visible
+// in the data itself, not just a CI log. Never throws.
+async function getAnalyzedCommit(workspaceRoot) {
+  const { exitCode, stdout } = await exec.getExecOutput('git', ['rev-parse', 'HEAD'], {
+    cwd: workspaceRoot,
+    ignoreReturnCode: true,
+    silent: true,
+  });
+  return exitCode === 0 ? stdout.trim() : null;
 }
 
 async function buildPackageRecord(pkg, packResult, allSiblingTgzPaths) {

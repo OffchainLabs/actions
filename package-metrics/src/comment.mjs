@@ -6,7 +6,7 @@ import { formatBytes } from './formatBytes.mjs';
 export const MARKER = '<!-- package-metrics-report -->';
 
 // Pure markdown builder — no I/O, so it's directly unit-testable.
-export function buildCommentBody(result, runUrl) {
+export function buildCommentBody(result) {
   const shortSha = result.commit.slice(0, 7);
 
   const rows = result.packages.map((pkg) => {
@@ -47,7 +47,7 @@ export function buildCommentBody(result, runUrl) {
     );
   }
 
-  lines.push(`[Full JSON report →](${runUrl})`);
+  lines.push(`[Full JSON report →](${result.runUrl})`);
 
   return lines.join('\n');
 }
@@ -101,9 +101,8 @@ export async function postComment(result, githubToken) {
   try {
     const { owner, repo } = context.repo;
     const issue_number = context.issue.number;
-    const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
 
-    const body = buildCommentBody(result, runUrl);
+    const body = buildCommentBody(result);
 
     const comments = await listAllComments(githubToken, owner, repo, issue_number);
     const existing = comments.find((c) => c.body?.includes(MARKER));
