@@ -1,3 +1,14 @@
+# ----------------------------------
+# package-metrics test workflow
+# ----------------------------------
+# The purpose of this action is to test the reusable workflow under /package-metrics.
+# Current metrics:
+# - bundleSize
+# - installSize
+# - packedSize
+#
+# More context under package-metrics/README.md
+# ----------------------------------
 name: actions/package-metrics
 
 on:
