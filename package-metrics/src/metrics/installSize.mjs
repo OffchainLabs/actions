@@ -22,9 +22,10 @@ export async function installSize(tgzPath, siblingTgzPaths = {}) {
     const pkgJsonPath = path.join(packageDir, 'package.json');
     const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
 
-    // peerDependencies aren't rewritten: a plain npm install doesn't
-    // auto-install them, so it wouldn't affect the measured size.
-    for (const depsField of ['dependencies', 'optionalDependencies']) {
+    // npm >=7 auto-installs peerDependencies by default, so an unrewritten
+    // workspace-sibling peer dep would 404 against the registry just like an
+    // unrewritten regular dependency would.
+    for (const depsField of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
       if (!pkg[depsField]) {
         continue;
       }
