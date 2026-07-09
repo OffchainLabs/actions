@@ -69,7 +69,7 @@ jobs:
           enable-comment: true
 
   pnpm-monorepo:
-    name: "pnpm monorepo (workspace:* sibling resolution)"
+    name: "pnpm monorepo (workspace:* sibling resolution, incl. transitive)"
     runs-on: ubuntu-latest
     permissions:
       contents: read

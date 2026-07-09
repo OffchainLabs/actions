@@ -112,7 +112,8 @@ are supported automatically. This action detects the package manager per package
 (dependencies already installed) is satisfied. Unpublished workspace siblings are
 resolved locally (rewritten to a `file:` reference against that sibling's own packed
 tarball) rather than attempting a registry fetch, so `installSize` succeeds even for
-packages that have never been published.
+packages that have never been published — including transitively, e.g. `c` depending
+on `b` depending on `a`, where none of the 3 have ever been published.
 
 ## Fork PRs are skipped entirely
 
@@ -185,9 +186,9 @@ The fixtures:
   auto-discovery.
 - `__fixtures__/single-pkg` — exercises `is-monorepo: false` with an explicit `paths`
   input.
-- `__fixtures__/pnpm-monorepo` — a real pnpm workspace where `pkg-b` depends on
-  `pkg-a` via `workspace:*` — exercises package-manager detection and the
-  unpublished-sibling `file:` resolution logic.
+- `__fixtures__/pnpm-monorepo` — a real pnpm workspace with a `pkg-c` → `pkg-b` →
+  `pkg-a` chain, all via `workspace:*` — exercises package-manager detection and the
+  unpublished-sibling `file:` resolution logic, including transitively.
 
 If you add a new scenario this action needs to handle, add or extend a fixture for it
 and a corresponding job in `package-metrics.yml`, following the same pattern.

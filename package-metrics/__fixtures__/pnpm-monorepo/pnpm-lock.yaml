@@ -15,3 +15,9 @@ importers:
       fixture-pnpm-a:
         specifier: workspace:*
         version: link:../pkg-a
+
+  packages/pkg-c:
+    dependencies:
+      fixture-pnpm-b:
+        specifier: workspace:*
+        version: link:../pkg-b
