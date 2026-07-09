@@ -29,6 +29,15 @@ export function discoverPackages({ workspaceRoot, isMonorepo, paths }) {
     }
     packages.push({ name: pkg.name, version: pkg.version, path: dir });
   }
+
+  if (packages.length === 0) {
+    throw new Error(
+      isMonorepo
+        ? `package-metrics: no packages found under "${path.join(workspaceRoot, 'packages')}" — check that the directory exists and contains package.json files`
+        : 'package-metrics: no packages found — check that the "paths" input is set and points to valid package directories',
+    );
+  }
+
   return packages;
 }
 
