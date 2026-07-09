@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
+import * as core from '@actions/core';
 
 /**
  * Discover the set of packages to measure for this run.
@@ -24,7 +25,7 @@ export function discoverPackages({ workspaceRoot, isMonorepo, paths }) {
       continue;
     }
     if (!pkg.name) {
-      console.warn(`package-metrics: skipping "${dir}" — its package.json has no "name" field`);
+      core.warning(`package-metrics: skipping "${dir}" — its package.json has no "name" field`);
       continue;
     }
     packages.push({ name: pkg.name, version: pkg.version, path: dir });
@@ -48,7 +49,7 @@ function discoverMonorepoDirs(workspaceRoot) {
   try {
     entries = readdirSync(packagesRoot, { withFileTypes: true });
   } catch (err) {
-    console.warn(`package-metrics: could not read "${packagesRoot}": ${err.message}`);
+    core.warning(`package-metrics: could not read "${packagesRoot}": ${err.message}`);
     return [];
   }
 
@@ -56,11 +57,11 @@ function discoverMonorepoDirs(workspaceRoot) {
   for (const entry of entries) {
     const entryPath = path.join(packagesRoot, entry.name);
     if (!entry.isDirectory()) {
-      console.warn(`package-metrics: skipping "${entryPath}" — not a directory`);
+      core.warning(`package-metrics: skipping "${entryPath}" — not a directory`);
       continue;
     }
     if (!existsSync(path.join(entryPath, 'package.json'))) {
-      console.warn(`package-metrics: skipping "${entryPath}" — no package.json found`);
+      core.warning(`package-metrics: skipping "${entryPath}" — no package.json found`);
       continue;
     }
     dirs.push(entryPath);
@@ -93,7 +94,7 @@ function discoverExplicitDirs(workspaceRoot, paths) {
 function readPackageJson(dir) {
   const pkgJsonPath = path.join(dir, 'package.json');
   if (!existsSync(pkgJsonPath)) {
-    console.warn(`package-metrics: skipping "${dir}" — no package.json found`);
+    core.warning(`package-metrics: skipping "${dir}" — no package.json found`);
     return null;
   }
   try {
