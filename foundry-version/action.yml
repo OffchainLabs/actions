@@ -1,0 +1,37 @@
+name: actions/foundry-version
+description: "Check that CI pins a single Foundry release and flag when a newer stable release is out"
+inputs:
+  foundryup-files:
+    description: "Newline-separated files that install Foundry with `foundryup --install <version>`, such as a Dockerfile. Their pins must match the workflows"
+    required: false
+    default: ""
+  update-hint:
+    description: "Extra text for the update check summary, such as a reminder to regenerate .gas-snapshot"
+    required: false
+    default: ""
+  github-token:
+    description: "Token used to read the latest Foundry release and create the update check"
+    required: false
+    default: ${{ github.token }}
+outputs:
+  pinned:
+    description: "The pinned Foundry version"
+    value: ${{ steps.check.outputs.pinned }}
+  latest:
+    description: "The latest stable Foundry version"
+    value: ${{ steps.check.outputs.latest }}
+  up-to-date:
+    description: "Whether the pinned version is the latest stable release"
+    value: ${{ steps.check.outputs.up-to-date }}
+runs:
+  using: "composite"
+  steps:
+    - name: Compare pinned Foundry against latest stable
+      id: check
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        FOUNDRYUP_FILES: ${{ inputs.foundryup-files }}
+        UPDATE_HINT: ${{ inputs.update-hint }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: ${{ github.action_path }}/check.sh
