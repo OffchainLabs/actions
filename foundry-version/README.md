@@ -29,8 +29,6 @@ jobs:
         with:
           # Optional: other files that pin Foundry via foundryup
           foundryup-files: Dockerfile
-          # Optional: extra text for the update check
-          update-hint: Regenerate `.gas-snapshot` too.
 ```
 
 Requires `yq`, `jq` and `gh`, which GitHub-hosted Ubuntu runners include.
