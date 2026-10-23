@@ -34,10 +34,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           latest=$(gh api repos/foundry-rs/foundry/releases/latest --jq .tag_name)
-          open=$(gh pr list --head ci/foundry-update --json title,isCrossRepository --jq '.[] | select(.isCrossRepository | not) | .title')
+          # Includes closed PRs, so closing one without merging skips that release
+          seen=$(gh pr list --head ci/foundry-update --state all --json title,isCrossRepository --jq '.[] | select(.isCrossRepository | not) | .title')
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
           pinned=$(yq '.runs.steps[] | select(.uses | test("^foundry-rs/foundry-toolchain@")) | .with.version' .github/actions/install-foundry/action.yml)
-          if [ "$pinned" = "$latest" ] || [ "$open" = "Bump Foundry to $latest" ]; then
+          if [ "$pinned" = "$latest" ] || grep -qFx "Bump Foundry to $latest" <<< "$seen"; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 

@@ -2,7 +2,7 @@
 
 Reusable workflow that opens a PR bumping a repo's pinned Foundry release when a newer stable release is out.
 
-- Compares the pin against the latest stable Foundry release, and skips if they match or a PR for that release is already open
+- Compares the pin against the latest stable Foundry release, and skips if they match or a PR for that release already exists, open or closed. Closing a PR without merging skips that release until a newer one is out. To retry it, reopen the PR
 - Bumps the pin, installs the new release, runs `yarn`, then runs the repo's `fix-up` commands, such as `forge fmt` or regenerating snapshots
 - Pushes `ci/foundry-update` and opens a PR into the branch the workflow ran on, listing the fix-up commands. If a PR for an older release is still open, it updates that one instead
 
