@@ -1,0 +1,133 @@
+name: Foundry Update
+
+on:
+  workflow_call:
+    inputs:
+      fix-up:
+        description: "Commands to run with the new Foundry before opening the PR, such as `forge fmt`. Listed in the PR body"
+        type: string
+        required: true
+      reviewer:
+        description: "GitHub login to request review from when a new PR is opened"
+        type: string
+        default: ""
+      node-version:
+        description: "Node.js version used to install packages with yarn"
+        type: string
+        default: "24"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      latest: ${{ steps.versions.outputs.latest }}
+      skip: ${{ steps.versions.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare pinned Foundry against latest stable
+        id: versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api repos/foundry-rs/foundry/releases/latest --jq .tag_name)
+          # Includes closed PRs, so closing one without merging skips that release
+          seen=$(gh pr list --head ci/foundry-update --state all --json title,isCrossRepository --jq '.[] | select(.isCrossRepository | not) | .title')
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          pinned=$(yq '.runs.steps[] | select(.uses | test("^foundry-rs/foundry-toolchain@")) | .with.version' .github/actions/install-foundry/action.yml)
+          if [ "$pinned" = "$latest" ] || grep -qFx "Bump Foundry to $latest" <<< "$seen"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Runs the new Foundry and other third-party code, so it only gets a read-only token
+  prepare:
+    needs: check
+    if: needs.check.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      LATEST: ${{ needs.check.outputs.latest }}
+      FIX_UP: ${{ inputs.fix-up }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Bump pinned Foundry
+        run: yq -i '(.runs.steps[] | select(.uses | test("^foundry-rs/foundry-toolchain@")) | .with.version) = strenv(LATEST)' .github/actions/install-foundry/action.yml
+
+      - name: Install Foundry
+        uses: ./.github/actions/install-foundry
+
+      - name: Setup node/yarn
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: "yarn"
+          cache-dependency-path: "**/yarn.lock"
+
+      - name: Install packages
+        run: yarn
+
+      - name: Run fix-up commands
+        run: ${{ inputs.fix-up }}
+
+      - name: Save patch and PR body
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir "$RUNNER_TEMP/foundry-update"
+          git diff > "$RUNNER_TEMP/foundry-update/changes.patch"
+          {
+            echo "Bumps Foundry to [$LATEST](https://github.com/foundry-rs/foundry/releases/tag/$LATEST) and runs:"
+            echo
+            echo '```'
+            echo "${FIX_UP%$'\n'}"
+            echo '```'
+            echo
+            echo "Opened by the [Foundry Update workflow]($RUN_URL). CI doesn't run on PRs opened by GitHub Actions. Close and reopen this PR to start it."
+          } > "$RUNNER_TEMP/foundry-update/body.md"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: foundry-update
+          path: ${{ runner.temp }}/foundry-update
+
+  # Pushes and PRs made with GITHUB_TOKEN don't trigger CI. A person closing and
+  # reopening the PR does
+  publish:
+    needs: [check, prepare]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: foundry-update
+          path: ${{ runner.temp }}/foundry-update
+
+      - name: Push branch and open PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: Bump Foundry to ${{ needs.check.outputs.latest }}
+          REVIEWER: ${{ inputs.reviewer }}
+        run: |
+          git apply "$RUNNER_TEMP/foundry-update/changes.patch"
+          git switch -c ci/foundry-update
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -am "$TITLE"
+          git push --force origin ci/foundry-update
+          number=$(gh pr list --head ci/foundry-update --json number,isCrossRepository --jq '.[] | select(.isCrossRepository | not) | .number')
+          if [ -z "$number" ]; then
+            gh pr create --base "$GITHUB_REF_NAME" --head ci/foundry-update ${REVIEWER:+--reviewer "$REVIEWER"} --title "$TITLE" --body-file "$RUNNER_TEMP/foundry-update/body.md"
+          else
+            gh pr edit "$number" --title "$TITLE" --body-file "$RUNNER_TEMP/foundry-update/body.md"
+          fi
