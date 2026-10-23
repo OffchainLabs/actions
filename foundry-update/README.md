@@ -15,7 +15,6 @@ The workflow uses `GITHUB_TOKEN`, and GitHub doesn't start workflow runs for PRs
   ```yml
   name: Install Foundry
   description: Install the pinned Foundry release
-
   runs:
     using: composite
     steps:
