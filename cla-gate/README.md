@@ -5,6 +5,7 @@ Reusable workflow that posts a commit status to stand in for CLA Assistant's `li
 - Passes a PR into the default branch from a branch in the repo when its opener and every commit author are active org members or on CLA Assistant's allowlist
 - Any other PR, such as one from a fork, waits with a `pending` status until CLA Assistant reports `license/cla` as `success`. The `status` event from CLA Assistant re-runs the gate
 - A PR with more commits than GitHub lists also waits for `license/cla`
+- A merge group passes straight away, since its PRs had to pass the gate to join the merge queue. CLA Assistant does the same for `license/cla`
 
 It picks the person behind each commit and matches the allowlist the same way CLA Assistant does:
 
@@ -16,7 +17,7 @@ Only people with write access can push branches in the repo, so faking a member 
 ## Keeping the app key safe
 
 - The key is a secret in the repo's `cla-gate` environment, which only gives it to runs on the default branch. A workflow pushed to another branch, or run for a PR, can't read it
-- Only the `members` job uses the environment, and it only runs for PRs from branches in the repo into the default branch, so it never runs for a fork PR. The `status` job handles every other PR and CLA Assistant's status events without secrets
+- Only the `members` job uses the environment, and it only runs for PRs from branches in the repo into the default branch, so it never runs for a fork PR. The `status` job handles every other PR, merge groups and CLA Assistant's status events without secrets
 - The `members` job runs no PR code, and its only action, `actions/create-github-app-token`, is pinned to a commit. It can read the PR but can't write to the repo, and the app token can only read members
 - The app is installed on `OffchainLabs/actions` alone, so its token can't read other repos
 - Both ways of passing post the same `CLA requirements met` description, and the logs don't say who is or isn't a member, so a public repo doesn't reveal private members
@@ -50,6 +51,8 @@ on:
     # edited covers base branch changes, which change the PR's commits
     types: [opened, synchronize, reopened, edited]
   status:
+  # Only needed with a merge queue, which requires the status on merge groups too
+  merge_group:
 
 permissions:
   contents: read
@@ -59,7 +62,7 @@ permissions:
 jobs:
   cla-gate:
     # Of the status events, only CLA Assistant reporting a signed CLA changes the gate
-    if: github.event_name == 'pull_request_target' || (github.event.context == 'license/cla' && github.event.state == 'success')
+    if: github.event_name != 'status' || (github.event.context == 'license/cla' && github.event.state == 'success')
     uses: OffchainLabs/actions/.github/workflows/cla-gate.yml@<commit-sha>
     with:
       client-id: ${{ vars.CLA_GATE_CLIENT_ID }}

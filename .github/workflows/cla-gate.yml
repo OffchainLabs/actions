@@ -151,8 +151,8 @@ jobs:
           echo "result=$result" >> "$GITHUB_OUTPUT"
           echo "Result: $result"
 
-  # Has no secrets, so it handles fork PRs, PRs into other branches and CLA
-  # Assistant's status events.
+  # Has no secrets, so it handles fork PRs, PRs into other branches, merge
+  # groups and CLA Assistant's status events.
   # Skipped when the members job fails, leaving no status, so the PR stays blocked
   status:
     needs: members
@@ -160,6 +160,7 @@ jobs:
       always()
       && (needs.members.result == 'success' || needs.members.result == 'skipped')
       && (github.event_name == 'pull_request_target'
+        || github.event_name == 'merge_group'
         || (github.event_name == 'status' && github.event.context == 'license/cla' && github.event.state == 'success'))
     runs-on: ubuntu-latest
     permissions:
@@ -191,6 +192,14 @@ jobs:
               --jq ".statuses[] | select(.context == \"$CLA_CONTEXT\") | .state")
             [ "$state" = success ]
           }
+
+          # A PR only joins the merge queue after the gate passed on the PR, so the
+          # merge group passes too, as CLA Assistant does for license/cla
+          if [ "$GITHUB_EVENT_NAME" = merge_group ]; then
+            sha=$(jq -r .merge_group.head_sha "$GITHUB_EVENT_PATH")
+            post success "$PASSED"
+            exit 0
+          fi
 
           if [ "$GITHUB_EVENT_NAME" = status ]; then
             sha=$(jq -r .sha "$GITHUB_EVENT_PATH")
