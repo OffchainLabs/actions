@@ -1,0 +1,237 @@
+name: CLA Gate
+
+on:
+  workflow_call:
+    inputs:
+      client-id:
+        description: "Client ID of a GitHub App with read-only access to the org's members"
+        type: string
+        required: true
+      allowlist:
+        description: "The repo's CLA Assistant allowlist, copied as is: comma-separated GitHub logins or commit author names, where `*` matches anything"
+        type: string
+        default: ""
+      context:
+        description: "Name of the commit status to post. Make it a required status check"
+        type: string
+        default: "cla-gate"
+    secrets:
+      # The members job reads it from the caller's cla-gate environment, which
+      # only gives it to runs on the default branch
+      CLA_GATE_PRIVATE_KEY:
+        description: "Private key of that GitHub App, stored in the caller's `cla-gate` environment"
+        required: true
+
+# Posts a commit status that stands in for CLA Assistant's license/cla, so a
+# flaky CLA Assistant doesn't block PRs that don't need a CLA. A PR from a branch
+# in the repo passes when its opener and every commit author are org members or
+# allowlisted. Only people with write access can push those branches, so forging
+# a commit author doesn't get an outside contribution through. Any other PR
+# passes once license/cla is success.
+jobs:
+  # The only job with the app key. It only runs for PRs from branches in the
+  # repo into the default branch, runs no PR code, uses no action besides the
+  # pinned token action, and can't write to the repo. pull_request_target runs
+  # on the PR's base branch, so the environment's default branch rule lets it
+  # through, and PRs into other branches would fail that rule
+  members:
+    if: >-
+      github.event_name == 'pull_request_target'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.base.ref == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    environment: cla-gate
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      result: ${{ steps.check.outputs.result }}
+    steps:
+      # GITHUB_TOKEN can't see private org members
+      - name: Create membership token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ inputs.client-id }}
+          private-key: ${{ secrets.CLA_GATE_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          # The app is installed on this repo alone, so the token can't read
+          # other repos. Members is an org permission, so it still covers the org
+          repositories: actions
+          permission-members: read
+
+      # Logs don't name who is or isn't a member, since they're public on public repos
+      - name: Check opener and commit authors
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MEMBERS_TOKEN: ${{ steps.app.outputs.token }}
+          ALLOWLIST: ${{ inputs.allowlist }}
+        run: |
+          set -euo pipefail
+
+          # Matches like CLA Assistant's allowlist: comma-separated patterns where `*`
+          # matches anything, and a pattern with `*` may match anywhere in the name
+          allowed() {
+            jq -ne --arg list "$ALLOWLIST" --arg name "$1" '$name != "" and ($list | split(",")
+              | any(.[] | sub("^\\s+"; "") | sub("\\s+$"; "");
+                  if contains("*") then
+                    (gsub("(?<c>[\\^$\\\\.+?()\\[\\]{}|])"; "\\\(.c)") | gsub("\\*"; ".*")) as $regex | $name | test($regex)
+                  else . == $name end))' > /dev/null
+          }
+
+          # Stops the run when membership can't be read, since counting that as "not a
+          # member" would hide a broken token behind PRs waiting on CLA Assistant
+          is_member() {
+            local out
+            if out=$(GH_TOKEN=$MEMBERS_TOKEN gh api "orgs/$GITHUB_REPOSITORY_OWNER/memberships/$1" --jq .state 2>&1); then
+              # Pending invitees haven't joined yet
+              [ "$out" = active ]
+            elif [[ $out == *"HTTP 404"* ]]; then
+              return 1
+            else
+              echo "::error::Could not read $GITHUB_REPOSITORY_OWNER membership: $out"
+              exit 1
+            fi
+          }
+
+          query='query($owner: String!, $repo: String!, $number: Int!, $endCursor: String) {
+            repository(owner: $owner, name: $repo) {
+              pullRequest(number: $number) {
+                headRefOid
+                commits(first: 100, after: $endCursor) {
+                  totalCount
+                  pageInfo { hasNextPage endCursor }
+                  nodes { commit { author { name user { login } } committer { user { login } } } }
+                }
+              }
+            }
+          }'
+
+          # Sets result to exempt, needs-cla or stale
+          check() {
+            local opener pages head people kind name
+            opener=$(jq -r .pull_request.user.login "$GITHUB_EVENT_PATH")
+            if ! { allowed "$opener" || is_member "$opener"; }; then
+              result=needs-cla
+              return
+            fi
+
+            pages=$(gh api graphql --paginate -f owner="$GITHUB_REPOSITORY_OWNER" -f repo="${GITHUB_REPOSITORY#*/}" \
+              -F number="$(jq -r .pull_request.number "$GITHUB_EVENT_PATH")" -f query="$query")
+            head=$(jq -rs '.[0].data.repository.pullRequest.headRefOid' <<< "$pages")
+            if [ "$head" != "$(jq -r .pull_request.head.sha "$GITHUB_EVENT_PATH")" ]; then
+              result=stale
+              return
+            fi
+
+            # GitHub caps how many commits a PR lists, so uncounted commits need a CLA check
+            if ! jq -se '([.[].data.repository.pullRequest.commits.nodes[]] | length)
+                == .[0].data.repository.pullRequest.commits.totalCount' <<< "$pages" > /dev/null; then
+              result=needs-cla
+              return
+            fi
+
+            # Picks the person for each commit like CLA Assistant does: the author's
+            # account, else the committer's account, else the author's name
+            people=$(jq -rs '[.[].data.repository.pullRequest.commits.nodes[].commit
+              | if .author.user then ["login", .author.user.login]
+                elif .committer.user then ["login", .committer.user.login]
+                else ["name", .author.name] end] | unique[] | join("\u001f")' <<< "$pages")
+            while IFS=$'\x1f' read -r kind name; do
+              if ! { allowed "$name" || { [ "$kind" = login ] && is_member "$name"; }; }; then
+                result=needs-cla
+                return
+              fi
+            done <<< "$people"
+            result=exempt
+          }
+
+          check
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+          echo "Result: $result"
+
+  # Has no secrets, so it handles fork PRs, PRs into other branches, merge
+  # groups and CLA Assistant's status events.
+  # Skipped when the members job fails, leaving no status, so the PR stays blocked
+  status:
+    needs: members
+    if: >-
+      always()
+      && (needs.members.result == 'success' || needs.members.result == 'skipped')
+      && (github.event_name == 'pull_request_target'
+        || github.event_name == 'merge_group'
+        || (github.event_name == 'status' && github.event.context == 'license/cla' && github.event.state == 'success'))
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      # Both ways of passing post the same description, so the status doesn't
+      # say whether someone is a member
+      - name: Post CLA gate status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONTEXT: ${{ inputs.context }}
+          RESULT: ${{ needs.members.outputs.result }}
+        run: |
+          set -euo pipefail
+
+          CLA_CONTEXT=license/cla
+          PASSED="CLA requirements met"
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+          post() {
+            gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$sha" \
+              -f state="$1" -f context="$CONTEXT" -f description="$2" -f target_url="$RUN_URL" --silent
+            echo "$CONTEXT: $1 ($2)"
+          }
+
+          cla_passed() {
+            local state
+            state=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$sha/status" \
+              --jq ".statuses[] | select(.context == \"$CLA_CONTEXT\") | .state")
+            [ "$state" = success ]
+          }
+
+          # A PR only joins the merge queue after the gate passed on the PR, so the
+          # merge group passes too, as CLA Assistant does for license/cla
+          if [ "$GITHUB_EVENT_NAME" = merge_group ]; then
+            sha=$(jq -r .merge_group.head_sha "$GITHUB_EVENT_PATH")
+            post success "$PASSED"
+            exit 0
+          fi
+
+          if [ "$GITHUB_EVENT_NAME" = status ]; then
+            sha=$(jq -r .sha "$GITHUB_EVENT_PATH")
+            # Only a signed CLA changes the gate. Ignoring other states keeps them from
+            # overriding a pass for a PR that didn't need a CLA
+            if jq -e --arg context "$CLA_CONTEXT" '.context == $context and .state == "success"' "$GITHUB_EVENT_PATH" > /dev/null; then
+              post success "$PASSED"
+            fi
+            exit 0
+          fi
+
+          sha=$(jq -r .pull_request.head.sha "$GITHUB_EVENT_PATH")
+          case "$RESULT" in
+            exempt)
+              post success "$PASSED"
+              exit 0
+              ;;
+            stale)
+              echo "The PR head moved on, so the run for that push posts its status"
+              exit 0
+              ;;
+          esac
+
+          # PRs that skip the members job get here with no result
+          if cla_passed; then
+            post success "$PASSED"
+            exit 0
+          fi
+          post pending "Waiting for $CLA_CONTEXT"
+
+          # CLA Assistant may have reported since the check above, and the run for its
+          # status event may have posted before this one did
+          if cla_passed; then
+            post success "$PASSED"
+          fi
