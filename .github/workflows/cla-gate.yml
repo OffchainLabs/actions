@@ -16,8 +16,10 @@ on:
         type: string
         default: "cla-gate"
     secrets:
-      private-key:
-        description: "Private key of that GitHub App"
+      # The members job reads it from the caller's cla-gate environment, which
+      # only gives it to runs on the default branch
+      CLA_GATE_PRIVATE_KEY:
+        description: "Private key of that GitHub App, stored in the caller's `cla-gate` environment"
         required: true
 
 # Posts a commit status that stands in for CLA Assistant's license/cla, so a
@@ -28,11 +30,17 @@ on:
 # passes once license/cla is success.
 jobs:
   # The only job with the app key. It only runs for PRs from branches in the
-  # repo, runs no PR code, uses no action besides the pinned token action, and
-  # can't write to the repo
+  # repo into the default branch, runs no PR code, uses no action besides the
+  # pinned token action, and can't write to the repo. pull_request_target runs
+  # on the PR's base branch, so the environment's default branch rule lets it
+  # through, and PRs into other branches would fail that rule
   members:
-    if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event_name == 'pull_request_target'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.base.ref == github.event.repository.default_branch
     runs-on: ubuntu-latest
+    environment: cla-gate
     permissions:
       contents: read
       pull-requests: read
@@ -45,7 +53,7 @@ jobs:
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ inputs.client-id }}
-          private-key: ${{ secrets.private-key }}
+          private-key: ${{ secrets.CLA_GATE_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           # The app is installed on this repo alone, so the token can't read
           # other repos. Members is an org permission, so it still covers the org
@@ -143,7 +151,8 @@ jobs:
           echo "result=$result" >> "$GITHUB_OUTPUT"
           echo "Result: $result"
 
-  # Has no secrets, so it handles fork PRs and CLA Assistant's status events.
+  # Has no secrets, so it handles fork PRs, PRs into other branches and CLA
+  # Assistant's status events.
   # Skipped when the members job fails, leaving no status, so the PR stays blocked
   status:
     needs: members
@@ -205,7 +214,7 @@ jobs:
               ;;
           esac
 
-          # Fork PRs skip the members job, so they get here with no result
+          # PRs that skip the members job get here with no result
           if cla_passed; then
             post success "$PASSED"
             exit 0

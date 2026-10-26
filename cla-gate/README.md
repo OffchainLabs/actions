@@ -2,7 +2,7 @@
 
 Reusable workflow that posts a commit status to stand in for CLA Assistant's `license/cla` as the required CLA check, so a flaky CLA Assistant doesn't block PRs that don't need a CLA.
 
-- Passes a PR from a branch in the repo when its opener and every commit author are active org members or on CLA Assistant's allowlist
+- Passes a PR into the default branch from a branch in the repo when its opener and every commit author are active org members or on CLA Assistant's allowlist
 - Any other PR, such as one from a fork, waits with a `pending` status until CLA Assistant reports `license/cla` as `success`. The `status` event from CLA Assistant re-runs the gate
 - A PR with more commits than GitHub lists also waits for `license/cla`
 
@@ -13,19 +13,30 @@ It picks the person behind each commit and matches the allowlist the same way CL
 
 Only people with write access can push branches in the repo, so faking a member as a commit's author doesn't get an outside contribution through. This relies on everyone with write access being an org member. An outside collaborator with write access could push commits authored as a member.
 
-## Keeping the app key away from outside contributors
+## Keeping the app key safe
 
-- Only the `members` job gets the app key, and it only runs for PRs from branches in the repo, so it never runs for a fork PR. The `status` job handles fork PRs and CLA Assistant's status events without secrets
+- The key is a secret in the repo's `cla-gate` environment, which only gives it to runs on the default branch. A workflow pushed to another branch, or run for a PR, can't read it
+- Only the `members` job uses the environment, and it only runs for PRs from branches in the repo into the default branch, so it never runs for a fork PR. The `status` job handles every other PR and CLA Assistant's status events without secrets
 - The `members` job runs no PR code, and its only action, `actions/create-github-app-token`, is pinned to a commit. It can read the PR but can't write to the repo, and the app token can only read members
 - The app is installed on `OffchainLabs/actions` alone, so its token can't read other repos
 - Both ways of passing post the same `CLA requirements met` description, and the logs don't say who is or isn't a member, so a public repo doesn't reveal private members
 
-## Requirements
+Each run of the `members` job shows on the PR as a deployment to `cla-gate`.
 
-- CLA Assistant stays set up on the repo, so outside contributors still sign through it
-- A GitHub App owned by the org with the read-only **Members** organization permission and no webhook, installed on `OffchainLabs/actions` only. `GITHUB_TOKEN` can't see private org members. Save its client ID as the `CLA_GATE_CLIENT_ID` variable and its private key as the `CLA_GATE_PRIVATE_KEY` secret
-- The workflow is on the default branch. GitHub runs `status` workflows from there, and `pull_request_target` workflows from the PR's base branch
-- Branch protection requires the `cla-gate` status in place of `license/cla`
+## Setup
+
+Once for the org:
+
+1. Create a GitHub App owned by the org with only the read-only **Members** organization permission and no webhook. `GITHUB_TOKEN` can't see private org members
+2. Install it on `OffchainLabs/actions` only, and save its client ID as the `CLA_GATE_CLIENT_ID` organization variable
+
+For each repo:
+
+1. CLA Assistant stays set up, so outside contributors still sign through it
+2. Create a `cla-gate` environment. Under deployment branches, allow only the default branch
+3. Add the app's private key to that environment as the `CLA_GATE_PRIVATE_KEY` secret. Don't add it as a repo or org secret, which any branch's workflows can read
+4. Add the workflow below to the default branch. GitHub runs `status` workflows from there, and `pull_request_target` workflows from the PR's base branch
+5. In the default branch's protection, require the `cla-gate` status in place of `license/cla`
 
 ## Usage
 
@@ -55,7 +66,8 @@ jobs:
       # The repo's allowlist from its CLA Assistant settings, copied as is
       allowlist: dependabot[bot],github-actions[bot]
     secrets:
-      private-key: ${{ secrets.CLA_GATE_PRIVATE_KEY }}
+      # Resolves to the cla-gate environment's secret in the members job
+      CLA_GATE_PRIVATE_KEY: ${{ secrets.CLA_GATE_PRIVATE_KEY }}
 ```
 
 ## Inputs
@@ -68,6 +80,6 @@ jobs:
 
 ## Secrets
 
-| Secret        | Required | Description                    |
-| ------------- | -------- | ------------------------------ |
-| `private-key` | yes      | Private key of that GitHub App |
+| Secret                 | Required | Description                                                          |
+| ---------------------- | -------- | -------------------------------------------------------------------- |
+| `CLA_GATE_PRIVATE_KEY` | yes      | Private key of that GitHub App, stored in the `cla-gate` environment |
