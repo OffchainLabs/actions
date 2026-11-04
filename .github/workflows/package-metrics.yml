@@ -1,0 +1,99 @@
+# ----------------------------------
+# package-metrics test workflow
+# ----------------------------------
+# The purpose of this action is to test the reusable workflow under /package-metrics.
+# Current metrics:
+# - bundleSize
+# - installSize
+# - packedSize
+#
+# More context under package-metrics/README.md
+# ----------------------------------
+name: actions/package-metrics
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  monorepo-discovery:
+    name: "Monorepo discovery (is-monorepo: true)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
+
+      # GITHUB_WORKSPACE can't be overridden via env:, so stage the fixture
+      # at the real workspace root instead of redirecting the action to it.
+      - name: Stage fixture packages at the workspace root
+        shell: bash
+        run: cp -r package-metrics/__fixtures__/monorepo/packages .
+
+      - uses: ./package-metrics
+        with:
+          is-monorepo: true
+
+  explicit-paths:
+    name: "Explicit paths (is-monorepo: false)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
+
+      - uses: ./package-metrics
+        with:
+          is-monorepo: false
+          paths: package-metrics/__fixtures__/single-pkg
+
+  with-comment:
+    name: "PR comment (enable-comment: true)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
+
+      - uses: ./package-metrics
+        with:
+          is-monorepo: false
+          paths: package-metrics/__fixtures__/single-pkg
+          enable-comment: true
+
+  pnpm-monorepo:
+    name: "pnpm monorepo (workspace:* sibling resolution, incl. transitive)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install corepack
+        shell: bash
+        run: npm install -g corepack@latest
+
+      - name: Stage fixture pnpm workspace at the workspace root
+        shell: bash
+        run: cp -r package-metrics/__fixtures__/pnpm-monorepo/. .
+
+      - name: Install pnpm workspace dependencies
+        shell: bash
+        run: corepack pnpm install --frozen-lockfile
+
+      - uses: ./package-metrics
+        with:
+          is-monorepo: true

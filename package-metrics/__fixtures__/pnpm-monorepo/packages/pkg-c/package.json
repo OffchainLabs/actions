@@ -1,0 +1,9 @@
+{
+  "name": "fixture-pnpm-c",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "fixture-pnpm-b": "workspace:*"
+  }
+}
