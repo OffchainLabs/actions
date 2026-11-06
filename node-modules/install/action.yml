@@ -9,15 +9,24 @@ inputs:
     description: "Key to store node_modules in cache"
     required: false
     default: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+  restore-keys:
+    description: "Key prefixes to restore from when cache-key has no entry, for example `Linux-pnpm-`. The install command then installs what differs. Empty restores cache-key only"
+    required: false
+    default: ""
+  save:
+    description: "Save node_modules after a cache miss. Set it to an expression like `github.ref == 'refs/heads/main'` to save on the default branch only, so pull requests don't each save their own copy"
+    required: false
+    default: "true"
 runs:
   using: "composite"
   steps:
     - name: Check cache for "node_modules"
       id: cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: "**/node_modules"
         key: ${{ inputs.cache-key }}
+        restore-keys: ${{ inputs.restore-keys }}
 
     - name: Install dependencies
       shell: bash
@@ -25,8 +34,8 @@ runs:
       run: ${{ inputs.install-command }}
 
     - name: Save "node_modules" to cache
-      if: steps.cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      if: steps.cache.outputs.cache-hit != 'true' && inputs.save == 'true'
+      uses: actions/cache/save@v6
       with:
         path: "**/node_modules"
         key: ${{ inputs.cache-key }}
